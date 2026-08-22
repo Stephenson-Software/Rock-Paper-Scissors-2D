@@ -7,7 +7,7 @@ This application allows the user to play a simple graphical version of Rock Pape
 
 ## Installation
 ```
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
 ## Usage

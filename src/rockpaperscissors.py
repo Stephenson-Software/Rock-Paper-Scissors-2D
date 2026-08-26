@@ -3,8 +3,6 @@ import time
 import random
 from Graphik import *
 
-pygame.init()
-
 black = (0,0,0)
 white = (255,255,255)
 red = (200,0,0)
@@ -14,28 +12,23 @@ blue = (0,0,200)
 displayWidth = 900
 displayHeight = 600
 
-gameDisplay = pygame.display.set_mode((displayWidth, displayHeight))
-
-graphik = Graphik(gameDisplay)
-
-pygame.display.set_caption("Rock Paper Scissors")
-
-clock = pygame.time.Clock()
+gameDisplay = None
+graphik = None
+clock = None
 
 wins = 0
 losses = 0
 ties = 0
 
 def getComputerChoice():
-    randomInt = random.randint(1,4)
+    randomInt = random.randint(1,3)
     if randomInt == 1:
         return "rock"
-        
+
     if randomInt == 2:
         return "paper"
-    
-    if randomInt == 3:
-        return "scissors"
+
+    return "scissors"
 
 def playerChoseRock():
     computerChoice = getComputerChoice()
@@ -149,5 +142,15 @@ def lose(p, c):
             pygame.display.update()
             time.sleep(2)
             running = False
-    
-decisionScreen()
+
+def main():
+    global gameDisplay, graphik, clock
+    pygame.init()
+    gameDisplay = pygame.display.set_mode((displayWidth, displayHeight))
+    graphik = Graphik(gameDisplay)
+    pygame.display.set_caption("Rock Paper Scissors")
+    clock = pygame.time.Clock()
+    decisionScreen()
+
+if __name__ == "__main__":
+    main()

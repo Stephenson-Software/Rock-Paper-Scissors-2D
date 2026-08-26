@@ -26,6 +26,7 @@ class GetComputerChoiceTest(unittest.TestCase):
             self.assertEqual(rockpaperscissors.getComputerChoice(), "scissors")
 
     def test_everyDrawIsAValidChoice(self):
+        self.addCleanup(random.setstate, random.getstate())
         random.seed(1)
         observed = set()
         for _ in range(200):

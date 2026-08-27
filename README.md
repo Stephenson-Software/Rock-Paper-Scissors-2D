@@ -16,6 +16,12 @@ python3 src/rockpaperscissors.py
 ```
 A window titled "Rock Paper Scissors" opens with Rock, Paper, and Scissors buttons, and a running Wins / Losses / Ties tally in the top left. The game is exited by closing the window.
 
+## Tests
+```
+python3 -m unittest discover -s tests
+```
+The suite covers `getComputerChoice` and all nine `whoWon` outcome pairs, plus the Wins / Losses / Ties counters. Only the standard library `unittest` module is used, so no additional dependency is required. No display is opened by the tests: `src/rockpaperscissors.py` creates its window in `main()`, which runs only when the file is executed directly.
+
 ## Dependencies
 - pygame
 - Graphik

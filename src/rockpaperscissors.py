@@ -1,5 +1,4 @@
 import pygame
-import time
 import random
 from Graphik import *
 
@@ -11,6 +10,9 @@ blue = (0,0,200)
 
 displayWidth = 900
 displayHeight = 600
+
+framesPerSecond = 60
+resultScreenDuration = 2000
 
 gameDisplay = None
 graphik = None
@@ -72,75 +74,85 @@ def decisionScreen():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-        
-            gameDisplay.fill(white)
-            graphik.drawText("Rock, Paper, or Scissors?", displayWidth//2, displayHeight//4, 36, black)
-            middleButtonXPos = displayWidth//2 - 50
-            graphik.drawButton(middleButtonXPos - 200, 300, 100, 100, black, white, 15, "Rock", playerChoseRock)
-            graphik.drawButton(middleButtonXPos, 300, 100, 100, black, white, 15, "Paper", playerChosePaper)
-            graphik.drawButton(middleButtonXPos + 200, 300, 100, 100, black, white, 15, "Scissors", playerChoseScissors)
-            
-            graphik.drawText("Wins: " + str(wins), 50, 25, 15, black)
-            graphik.drawText("Losses: " + str(losses), 50, 50, 15, black)
-            graphik.drawText("Ties: " + str(ties), 50, 75, 15, black)
-            pygame.display.update()
+
+        gameDisplay.fill(white)
+        graphik.drawText("Rock, Paper, or Scissors?", displayWidth//2, displayHeight//4, 36, black)
+        middleButtonXPos = displayWidth//2 - 50
+        graphik.drawButton(middleButtonXPos - 200, 300, 100, 100, black, white, 15, "Rock", playerChoseRock)
+        graphik.drawButton(middleButtonXPos, 300, 100, 100, black, white, 15, "Paper", playerChosePaper)
+        graphik.drawButton(middleButtonXPos + 200, 300, 100, 100, black, white, 15, "Scissors", playerChoseScissors)
+
+        graphik.drawText("Wins: " + str(wins), 50, 25, 15, black)
+        graphik.drawText("Losses: " + str(losses), 50, 50, 15, black)
+        graphik.drawText("Ties: " + str(ties), 50, 75, 15, black)
+        pygame.display.update()
+        clock.tick(framesPerSecond)
 
 
 def tie(p, c):
     global ties
     ties += 1
     running = True
+    startTime = pygame.time.get_ticks()
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-        
-            gameDisplay.fill(white)
-            graphik.drawText("It was a tie!", displayWidth//2, displayHeight//4, 36, black)
-            graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
-            graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
-            pygame.display.update()
-            time.sleep(2)
+
+        gameDisplay.fill(white)
+        graphik.drawText("It was a tie!", displayWidth//2, displayHeight//4, 36, black)
+        graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
+        graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
+        pygame.display.update()
+        clock.tick(framesPerSecond)
+
+        if pygame.time.get_ticks() - startTime >= resultScreenDuration:
             running = False
 
 def win(p, c):
     global wins
     wins += 1
     running = True
+    startTime = pygame.time.get_ticks()
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-        
-            gameDisplay.fill(white)
-            graphik.drawText("You win!", displayWidth//2, displayHeight//4, 36, black)
-            graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
-            graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
-            pygame.display.update()
-            time.sleep(2)
+
+        gameDisplay.fill(white)
+        graphik.drawText("You win!", displayWidth//2, displayHeight//4, 36, black)
+        graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
+        graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
+        pygame.display.update()
+        clock.tick(framesPerSecond)
+
+        if pygame.time.get_ticks() - startTime >= resultScreenDuration:
             running = False
             
 def lose(p, c):
     global losses
     losses += 1
     running = True
+    startTime = pygame.time.get_ticks()
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-        
-            gameDisplay.fill(white)
-            graphik.drawText("You lost!", displayWidth//2, displayHeight//4, 36, black)
-            graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
-            graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
-            pygame.display.update()
-            time.sleep(2)
+
+        gameDisplay.fill(white)
+        graphik.drawText("You lost!", displayWidth//2, displayHeight//4, 36, black)
+        graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
+        graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
+        pygame.display.update()
+        clock.tick(framesPerSecond)
+
+        if pygame.time.get_ticks() - startTime >= resultScreenDuration:
             running = False
 
 def main():

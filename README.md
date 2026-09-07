@@ -20,7 +20,7 @@ A window titled "Rock Paper Scissors" opens with Rock, Paper, and Scissors butto
 ```
 python3 -m unittest discover -s tests
 ```
-The suite covers `getComputerChoice` and all nine `whoWon` outcome pairs, plus the Wins / Losses / Ties counters. Only the standard library `unittest` module is used, so no additional dependency is required. No display is opened by the tests: `src/rockpaperscissors.py` creates its window in `main()`, which runs only when the file is executed directly.
+The suite covers `getComputerChoice` and all nine `whoWon` outcome pairs, the Wins / Losses / Ties counters, and the render loops — that a frame is drawn even when the event queue is empty, that a result screen ends after its configured duration without blocking, and that a quit request during a result screen is honoured. Only the standard library `unittest` module is used, so no additional dependency is required. No display is opened by the tests: `src/rockpaperscissors.py` creates its window in `main()`, which runs only when the file is executed directly.
 
 ## Dependencies
 - pygame

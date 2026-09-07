@@ -55,6 +55,16 @@ def enterScreenPatches(stack, events):
 def drawnText(graphik):
     return [call.args[0] for call in graphik.drawText.call_args_list]
 
+class CounterResettingTestCase(unittest.TestCase):
+    def setUp(self):
+        self.resetCounters()
+        self.addCleanup(self.resetCounters)
+
+    def resetCounters(self):
+        rockpaperscissors.wins = 0
+        rockpaperscissors.losses = 0
+        rockpaperscissors.ties = 0
+
 class GetComputerChoiceTest(unittest.TestCase):
     def test_rollOfOneIsRock(self):
         with patch("rockpaperscissors.random.randint", return_value=1):
@@ -121,16 +131,7 @@ class WhoWonTest(unittest.TestCase):
     def test_scissorsTiesScissors(self):
         self.assertOutcome("scissors", "scissors", "tie")
 
-class ScoreCounterTest(unittest.TestCase):
-    def setUp(self):
-        self.resetCounters()
-        self.addCleanup(self.resetCounters)
-
-    def resetCounters(self):
-        rockpaperscissors.wins = 0
-        rockpaperscissors.losses = 0
-        rockpaperscissors.ties = 0
-
+class ScoreCounterTest(CounterResettingTestCase):
     def runResultScreen(self, resultScreen, playerChoice, computerChoice):
         with ExitStack() as stack:
             enterScreenPatches(stack, [])
@@ -153,16 +154,7 @@ class ScoreCounterTest(unittest.TestCase):
         self.runResultScreen(rockpaperscissors.tie, "rock", "rock")
         self.assertCounters(0, 0, 1)
 
-class RenderLoopTest(unittest.TestCase):
-    def setUp(self):
-        self.resetCounters()
-        self.addCleanup(self.resetCounters)
-
-    def resetCounters(self):
-        rockpaperscissors.wins = 0
-        rockpaperscissors.losses = 0
-        rockpaperscissors.ties = 0
-
+class RenderLoopTest(CounterResettingTestCase):
     def test_decisionScreenDrawsWhenTheEventQueueIsEmpty(self):
         with ExitStack() as stack:
             graphik, _ = enterScreenPatches(stack, [])

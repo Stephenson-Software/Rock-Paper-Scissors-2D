@@ -22,6 +22,9 @@ python3 -m unittest discover -s tests
 ```
 The suite covers `getComputerChoice` and all nine `whoWon` outcome pairs, the Wins / Losses / Ties counters, and the render loops — that a frame is drawn even when the event queue is empty, that a result screen ends after its configured duration without blocking, and that a quit request during a result screen is honoured. Only the standard library `unittest` module is used, so no additional dependency is required. No display is opened by the tests: `src/rockpaperscissors.py` creates its window in `main()`, which runs only when the file is executed directly.
 
+## Continuous integration
+`.github/workflows/ci.yml` runs on every push to `master` and on every pull request. It installs the dependencies, runs the suite above, and launches the game under the dummy SDL video and audio drivers to confirm it starts and keeps running. Clicking a button still requires a display, so the play-through remains a manual check.
+
 ## Dependencies
 - pygame
 - Graphik

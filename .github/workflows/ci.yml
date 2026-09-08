@@ -12,12 +12,12 @@ jobs:
       # The Graphik submodule is deliberately left uninitialized: `from Graphik import *`
       # resolves to the vendored src/Graphik.py, because Python puts the script's own
       # directory on sys.path.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Pinned rather than tracking the newest 3.x: pygame publishes no wheel for the
       # very latest interpreters, and pip then falls back to a source build that needs
       # SDL and freetype development headers the runner does not carry.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 

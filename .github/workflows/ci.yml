@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # The Graphik submodule is deliberately left uninitialized: `from Graphik import *`
+      # resolves to the vendored src/Graphik.py, because Python puts the script's own
+      # directory on sys.path.
+      - uses: actions/checkout@v5
+
+      # Pinned rather than tracking the newest 3.x: pygame publishes no wheel for the
+      # very latest interpreters, and pip then falls back to a source build that needs
+      # SDL and freetype development headers the runner does not carry.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Run the unit suite
+        run: python3 -m unittest discover -s tests
+
+      - name: Headless smoke launch
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        run: |
+          status=0
+          timeout 10 python3 src/rockpaperscissors.py || status=$?
+          if [ "$status" -ne 124 ]; then
+            echo "The game exited with status $status; it was expected to still be running when the timeout fired (124)."
+            exit 1
+          fi
+          echo "The game was still running when the timeout fired."

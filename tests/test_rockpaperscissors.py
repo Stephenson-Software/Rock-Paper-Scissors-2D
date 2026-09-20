@@ -131,6 +131,78 @@ class WhoWonTest(unittest.TestCase):
     def test_scissorsTiesScissors(self):
         self.assertOutcome("scissors", "scissors", "tie")
 
+class PlayerChoiceTest(unittest.TestCase):
+    def assertPlaysRound(self, playerChose, playerChoice):
+        with patch("rockpaperscissors.getComputerChoice", return_value="paper"), \
+             patch("rockpaperscissors.whoWon") as whoWon:
+            playerChose()
+        whoWon.assert_called_once_with(playerChoice, "paper")
+
+    def test_rockButtonPlaysRock(self):
+        self.assertPlaysRound(rockpaperscissors.playerChoseRock, "rock")
+
+    def test_paperButtonPlaysPaper(self):
+        self.assertPlaysRound(rockpaperscissors.playerChosePaper, "paper")
+
+    def test_scissorsButtonPlaysScissors(self):
+        self.assertPlaysRound(rockpaperscissors.playerChoseScissors, "scissors")
+
+class DecisionScreenTest(CounterResettingTestCase):
+    def runDecisionScreen(self):
+        with ExitStack() as stack:
+            graphik, _ = enterScreenPatches(stack, [])
+            with self.assertRaises(LoopDidNotExit):
+                rockpaperscissors.decisionScreen()
+        return graphik
+
+    def test_buttonsAreLabelledAndWiredLeftToRight(self):
+        graphik = self.runDecisionScreen()
+        firstFrame = graphik.drawButton.call_args_list[:3]
+        labels = [call.args[7] for call in firstFrame]
+        callbacks = [call.args[8] for call in firstFrame]
+        xPositions = [call.args[0] for call in firstFrame]
+        self.assertEqual(labels, ["Rock", "Paper", "Scissors"])
+        self.assertEqual(callbacks, [
+            rockpaperscissors.playerChoseRock,
+            rockpaperscissors.playerChosePaper,
+            rockpaperscissors.playerChoseScissors,
+        ])
+        self.assertEqual(xPositions, sorted(xPositions))
+
+    def test_tallyShowsTheCurrentCounters(self):
+        rockpaperscissors.wins = 2
+        rockpaperscissors.losses = 1
+        rockpaperscissors.ties = 3
+        graphik = self.runDecisionScreen()
+        text = drawnText(graphik)
+        self.assertIn("Wins: 2", text)
+        self.assertIn("Losses: 1", text)
+        self.assertIn("Ties: 3", text)
+
+class MainTest(unittest.TestCase):
+    def setUp(self):
+        # The dummy drivers keep main() from opening a real window or touching the audio device.
+        self.addCleanup(self.resetDisplayGlobals)
+        self.addCleanup(pygame.display.quit)
+        patcher = patch.dict(os.environ, {"SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy"})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def resetDisplayGlobals(self):
+        rockpaperscissors.gameDisplay = None
+        rockpaperscissors.graphik = None
+        rockpaperscissors.clock = None
+
+    def test_opensTheWindowThenEntersTheDecisionScreen(self):
+        with patch("rockpaperscissors.decisionScreen") as decisionScreen:
+            rockpaperscissors.main()
+        self.assertEqual(rockpaperscissors.gameDisplay.get_size(), (rockpaperscissors.displayWidth, rockpaperscissors.displayHeight))
+        self.assertEqual(pygame.display.get_caption()[0], "Rock Paper Scissors")
+        self.assertIs(rockpaperscissors.graphik.gameDisplay, rockpaperscissors.gameDisplay)
+        # pygame.time.Clock is a factory function on older pygame releases, not a type.
+        self.assertIsInstance(rockpaperscissors.clock, type(pygame.time.Clock()))
+        decisionScreen.assert_called_once_with()
+
 class ScoreCounterTest(CounterResettingTestCase):
     def runResultScreen(self, resultScreen, playerChoice, computerChoice):
         with ExitStack() as stack:

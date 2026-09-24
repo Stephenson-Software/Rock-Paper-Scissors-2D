@@ -162,6 +162,7 @@ class TestStartupEvent(unittest.TestCase):
         self.requests = []
         self.arrived = threading.Event()
         self.server = _stubServer(self.requests, self.arrived)
+        self.addCleanup(self.server.server_close)
         self.addCleanup(self.server.shutdown)
         self.endpoint = "http://127.0.0.1:%d" % self.server.server_address[1]
 

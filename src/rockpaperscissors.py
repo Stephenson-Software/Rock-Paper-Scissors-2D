@@ -1,6 +1,7 @@
 import pygame
 import random
 from Graphik import *
+from usage_reporting import startUsageReporting
 
 black = (0,0,0)
 white = (255,255,255)
@@ -21,6 +22,14 @@ clock = None
 wins = 0
 losses = 0
 ties = 0
+
+# the trace client once main() has started usage reporting; None until then, and for
+# main() called directly (as the tests do), so only a real launch reports
+usage = None
+
+def reportRound(result):
+    if usage is not None:
+        usage.report("round-played", tags={"result": result})
 
 def getComputerChoice():
     randomInt = random.randint(1,3)
@@ -92,6 +101,7 @@ def decisionScreen():
 def tie(p, c):
     global ties
     ties += 1
+    reportRound("tie")
     running = True
     startTime = pygame.time.get_ticks()
 
@@ -114,6 +124,7 @@ def tie(p, c):
 def win(p, c):
     global wins
     wins += 1
+    reportRound("win")
     running = True
     startTime = pygame.time.get_ticks()
 
@@ -136,6 +147,7 @@ def win(p, c):
 def lose(p, c):
     global losses
     losses += 1
+    reportRound("lose")
     running = True
     startTime = pygame.time.get_ticks()
 
@@ -155,8 +167,10 @@ def lose(p, c):
         if pygame.time.get_ticks() - startTime >= resultScreenDuration:
             running = False
 
-def main():
-    global gameDisplay, graphik, clock
+def main(reportUsage=False):
+    global gameDisplay, graphik, clock, usage
+    if reportUsage:
+        usage = startUsageReporting()
     pygame.init()
     gameDisplay = pygame.display.set_mode((displayWidth, displayHeight))
     graphik = Graphik(gameDisplay)
@@ -165,4 +179,4 @@ def main():
     decisionScreen()
 
 if __name__ == "__main__":
-    main()
+    main(reportUsage=True)

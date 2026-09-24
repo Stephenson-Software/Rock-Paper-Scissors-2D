@@ -203,6 +203,48 @@ class MainTest(unittest.TestCase):
         self.assertIsInstance(rockpaperscissors.clock, type(pygame.time.Clock()))
         decisionScreen.assert_called_once_with()
 
+    def test_directCallDoesNotStartUsageReporting(self):
+        with patch("rockpaperscissors.decisionScreen"), \
+                patch("rockpaperscissors.startUsageReporting") as startUsageReporting:
+            rockpaperscissors.main()
+        startUsageReporting.assert_not_called()
+        self.assertIsNone(rockpaperscissors.usage)
+
+    def test_launchStartsUsageReportingBeforeTheWindowOpens(self):
+        self.addCleanup(setattr, rockpaperscissors, "usage", None)
+        with patch("rockpaperscissors.decisionScreen"), \
+                patch("rockpaperscissors.startUsageReporting") as startUsageReporting:
+            rockpaperscissors.main(reportUsage=True)
+        startUsageReporting.assert_called_once_with()
+        self.assertIs(rockpaperscissors.usage, startUsageReporting.return_value)
+
+class RoundReportingTest(CounterResettingTestCase):
+    def setUp(self):
+        super().setUp()
+        self.usage = Mock()
+        patcher = patch("rockpaperscissors.usage", self.usage)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def playRound(self, resultScreen, playerChoice, computerChoice):
+        with ExitStack() as stack:
+            enterScreenPatches(stack, [])
+            resultScreen(playerChoice, computerChoice)
+
+    def test_eachResultReportsARoundWithItsResult(self):
+        self.playRound(rockpaperscissors.win, "rock", "scissors")
+        self.playRound(rockpaperscissors.lose, "rock", "paper")
+        self.playRound(rockpaperscissors.tie, "rock", "rock")
+        self.assertEqual([c.args for c in self.usage.report.call_args_list],
+                         [("round-played",)] * 3)
+        self.assertEqual([c.kwargs["tags"] for c in self.usage.report.call_args_list],
+                         [{"result": "win"}, {"result": "lose"}, {"result": "tie"}])
+
+    def test_noClientMeansNothingIsReported(self):
+        with patch("rockpaperscissors.usage", None):
+            self.playRound(rockpaperscissors.win, "rock", "scissors")
+        self.usage.report.assert_not_called()
+
 class ScoreCounterTest(CounterResettingTestCase):
     def runResultScreen(self, resultScreen, playerChoice, computerChoice):
         with ExitStack() as stack:

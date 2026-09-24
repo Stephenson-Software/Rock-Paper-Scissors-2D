@@ -31,6 +31,9 @@ jobs:
         env:
           SDL_VIDEODRIVER: dummy
           SDL_AUDIODRIVER: dummy
+          # a CI launch is not a person playing: without this it would report to the
+          # real trace service on every push
+          TRACE_USAGE_REPORTING: "off"
         run: |
           status=0
           timeout 10 python3 src/rockpaperscissors.py || status=$?

@@ -6,3 +6,6 @@ __pycache__/
 .venv/
 venv/
 env/
+
+# written on first launch by src/usage_reporting.py; holds the usage-reporting opt-out
+settings.json

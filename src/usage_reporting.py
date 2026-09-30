@@ -1,7 +1,7 @@
 """Reports that Rock-Paper-Scissors-2D was used to the trace service, and nothing else.
 
-What is sent: the program's name (``Rock-Paper-Scissors-2D``) and version with a ``startup``
-event, and a round-played event (tag result: win, lose or tie) after each round. Nothing about you, your machine or your choices.
+What is sent: the program's name (``Rock-Paper-Scissors-2D``) and version with every event --
+a ``startup`` event, and a round-played event (tag result: win, lose or tie) after each round. Nothing about you, your machine or your choices.
 
 Reporting is on by default. The first launch writes a ``usage_reporting``
 block to ``settings.json`` and prints a one-line notice saying so and how to
@@ -105,6 +105,7 @@ def buildClient(section):
         return TraceClient(
             str(section.get("endpoint") or DEFAULT_ENDPOINT),
             APPLICATION,
+            VERSION,
             key=str(section.get("key") or DEFAULT_KEY),
             enabled=bool(section.get("enabled", True)),
         )
@@ -122,6 +123,6 @@ def startUsageReporting(settingsFile=SETTINGS_FILE, log=print):
         client = buildClient(loadSettings(settingsFile, log))
     except Exception:
         return TraceClient.disabled()
-    client.report("startup", tags={"version": VERSION})
+    client.report("startup")
     atexit.register(client.close)
     return client

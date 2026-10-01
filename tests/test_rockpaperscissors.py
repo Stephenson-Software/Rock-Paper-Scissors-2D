@@ -307,5 +307,32 @@ class RenderLoopTest(CounterResettingTestCase):
             with self.assertRaises(SystemExit):
                 rockpaperscissors.win("rock", "scissors")
 
+    def test_quitDuringTheDecisionScreenIsHonoured(self):
+        quitEvent = Mock()
+        quitEvent.type = pygame.QUIT
+        with ExitStack() as stack:
+            enterScreenPatches(stack, [quitEvent])
+            pygameQuit = stack.enter_context(patch("pygame.quit"))
+            with self.assertRaises(SystemExit):
+                rockpaperscissors.decisionScreen()
+            pygameQuit.assert_called_once_with()
+
+class ResultScreenTextTest(CounterResettingTestCase):
+    def assertResultScreenShows(self, resultScreen, heading):
+        with ExitStack() as stack:
+            graphik, _ = enterScreenPatches(stack, [])
+            resultScreen("paper", "scissors")
+            firstFrame = drawnText(graphik)[:3]
+        self.assertEqual(firstFrame, [heading, "Player Choice: paper", "Computer Choice: scissors"])
+
+    def test_winScreenShowsTheHeadingAndBothChoices(self):
+        self.assertResultScreenShows(rockpaperscissors.win, "You win!")
+
+    def test_loseScreenShowsTheHeadingAndBothChoices(self):
+        self.assertResultScreenShows(rockpaperscissors.lose, "You lost!")
+
+    def test_tieScreenShowsTheHeadingAndBothChoices(self):
+        self.assertResultScreenShows(rockpaperscissors.tie, "It was a tie!")
+
 if __name__ == "__main__":
     unittest.main()

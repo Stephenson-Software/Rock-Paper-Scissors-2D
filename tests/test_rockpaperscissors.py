@@ -173,39 +173,34 @@ class DecisionScreenTest(CounterResettingTestCase):
                 asyncio.run(rockpaperscissors.decisionScreen())
         return graphik
 
-    def pressButtonOnFirstFrame(self, label):
-        def drawButtonStub(*args):
-            if args[7] == label and not state["pressed"]:
-                state["pressed"] = True
-                args[8]()
-        state = {"pressed": False}
-        with ExitStack() as stack:
-            graphik, _ = enterScreenPatches(stack, [])
-            graphik.drawButton.side_effect = drawButtonStub
-            stack.enter_context(patch("rockpaperscissors.getComputerChoice", return_value="paper"))
-            whoWon = stack.enter_context(patch("rockpaperscissors.whoWon", new_callable=AsyncMock))
-            with self.assertRaises(LoopDidNotExit):
-                asyncio.run(rockpaperscissors.decisionScreen())
-        return whoWon
-
-    def test_buttonsAreLabelledAndWiredLeftToRight(self):
+    def test_buttonsAreLabelledLeftToRight(self):
         graphik = self.runDecisionScreen()
         firstFrame = graphik.drawButton.call_args_list[:3]
         labels = [call.args[7] for call in firstFrame]
-        callbacks = [call.args[8] for call in firstFrame]
         xPositions = [call.args[0] for call in firstFrame]
         self.assertEqual(labels, ["Rock", "Paper", "Scissors"])
-        self.assertEqual(callbacks, [
-            rockpaperscissors.playerChoseRock,
-            rockpaperscissors.playerChosePaper,
-            rockpaperscissors.playerChoseScissors,
-        ])
         self.assertEqual(xPositions, sorted(xPositions))
 
-    def test_pressingAButtonPlaysExactlyOneRoundWithThatMove(self):
-        for label, move in (("Rock", "rock"), ("Paper", "paper"), ("Scissors", "scissors")):
-            with self.subTest(label=label):
-                whoWon = self.pressButtonOnFirstFrame(label)
+    def test_buttonsIgnoreAHeldMouseButton(self):
+        graphik = self.runDecisionScreen()
+        callbacks = [call.args[8] for call in graphik.drawButton.call_args_list[:3]]
+        self.assertEqual(callbacks, [rockpaperscissors.ignoreHeldButton] * 3)
+
+    def test_holdingAClickOnAButtonPlaysExactlyOneRound(self):
+        # the real Graphik.drawButton, which calls its function on every held frame
+        middle = rockpaperscissors.displayWidth // 2 - 50
+        for xpos, move in ((middle - 200, "rock"), (middle, "paper"), (middle + 200, "scissors")):
+            with self.subTest(move=move), ExitStack() as stack:
+                enterScreenPatches(stack, [self.pressEvent((xpos + 50, 350))])
+                stack.enter_context(patch.object(rockpaperscissors, "graphik", rockpaperscissors.Graphik(Mock())))
+                stack.enter_context(patch.object(rockpaperscissors.Graphik, "drawRectangle"))
+                stack.enter_context(patch.object(rockpaperscissors.Graphik, "drawText"))
+                stack.enter_context(patch("pygame.mouse.get_pos", return_value=(xpos + 50, 350)))
+                stack.enter_context(patch("pygame.mouse.get_pressed", return_value=(True, False, False)))
+                stack.enter_context(patch("rockpaperscissors.getComputerChoice", return_value="paper"))
+                whoWon = stack.enter_context(patch("rockpaperscissors.whoWon", new_callable=AsyncMock))
+                with self.assertRaises(LoopDidNotExit):
+                    asyncio.run(rockpaperscissors.decisionScreen())
                 whoWon.assert_awaited_once_with(move, "paper")
 
     def runWithEvents(self, events):

@@ -99,6 +99,12 @@ async def whoWon(playerChoice, computerChoice):
     if playerChoice == "scissors" and computerChoice == "paper":
         await win(playerChoice, computerChoice)
 
+def ignoreHeldButton():
+    # Graphik.drawButton calls its function on every frame the left button is held over
+    # the box, so one long press would play a round each time the result screen ended;
+    # a round is played from the press event in decisionScreen instead
+    pass
+
 def pressLandedOn(pressPos, xpos, ypos, width, height):
     # the same bounds Graphik.drawButton uses for the cursor
     return pressPos is not None and xpos + width > pressPos[0] > xpos and ypos + height > pressPos[1] > ypos
@@ -111,9 +117,9 @@ async def decisionScreen():
 
     while running:
         chosenMove = None
-        # A click or tap whose press and release land in the same frame is gone from
-        # pygame.mouse.get_pressed() by the time Graphik.drawButton looks, which is how a
-        # browser tap (and a quick click in the browser) arrives; the press event is kept.
+        # A round is played only from a left-button press event, once per click or tap: a
+        # press and release landing in the same frame (how a browser tap arrives) still
+        # counts, and a button held down plays nothing further.
         pressPos = None
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -131,7 +137,7 @@ async def decisionScreen():
             (middleButtonXPos + 200, "Scissors", playerChoseScissors),
         ]
         for buttonXPos, label, chooseThis in buttons:
-            graphik.drawButton(buttonXPos, buttonYPos, buttonSize, buttonSize, black, white, 15, label, chooseThis)
+            graphik.drawButton(buttonXPos, buttonYPos, buttonSize, buttonSize, black, white, 15, label, ignoreHeldButton)
             if pressLandedOn(pressPos, buttonXPos, buttonYPos, buttonSize, buttonSize):
                 chooseThis()
 

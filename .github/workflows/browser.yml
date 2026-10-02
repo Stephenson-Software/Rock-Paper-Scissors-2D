@@ -1,0 +1,42 @@
+name: Browser build
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # pygbag packs src/ (main.py is its entry point) into a page that loads CPython and
+      # pygame-ce compiled to WebAssembly from pygame-web.github.io
+      - name: Build with pygbag
+        run: |
+          python3 -m pip install pygbag==0.9.3
+          python3 -m pygbag --build src
+
+      - name: Check the build
+        run: |
+          test -f src/build/web/index.html
+          ls -la src/build/web
+
+      # arcade versions are immutable, so every deployed commit gets its own version
+      - name: Write the version
+        run: echo "$(cat version.txt)+g${GITHUB_SHA::7}" > "$RUNNER_TEMP/arcade-version.txt"
+
+      - name: Deploy to arcade
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && vars.ARCADE_ENABLED == 'true')
+        uses: Stephenson-Software/arcade-deploy@v1
+        with:
+          slug: rock-paper-scissors
+          token: ${{ secrets.ARCADE_TOKEN }}
+          site-dir: src/build/web
+          version-file: ${{ runner.temp }}/arcade-version.txt

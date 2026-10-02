@@ -1,3 +1,7 @@
+import asyncio
+import sys
+import time
+
 import pygame
 import random
 from Graphik import *
@@ -27,6 +31,21 @@ ties = 0
 # main() called directly (as the tests do), so only a real launch reports
 usage = None
 
+# the move a button press recorded during the current decision-screen frame; the screen
+# plays the round once the frame is drawn. Callbacks only record, because the browser
+# build (pygbag) needs every frame loop to yield, which a synchronous callback cannot do.
+chosenMove = None
+
+def runningInBrowser():
+    # pygbag runs the game under CPython compiled to WebAssembly
+    return sys.platform == "emscripten"
+
+async def endFrame():
+    pygame.display.update()
+    clock.tick(framesPerSecond)
+    # hands control back to the browser once per frame; a no-op pause on the desktop
+    await asyncio.sleep(0)
+
 def reportRound(result):
     if usage is not None:
         usage.report("round-played", tags={"result": result})
@@ -41,64 +60,93 @@ def getComputerChoice():
 
     return "scissors"
 
+def chooseMove(move):
+    global chosenMove
+    chosenMove = move
+
 def playerChoseRock():
-    computerChoice = getComputerChoice()
-    whoWon("rock", computerChoice)
+    chooseMove("rock")
 
 def playerChosePaper():
-    computerChoice = getComputerChoice()
-    whoWon("paper", computerChoice)
+    chooseMove("paper")
 
 def playerChoseScissors():
+    chooseMove("scissors")
+
+async def playRound(playerChoice):
     computerChoice = getComputerChoice()
-    whoWon("scissors", computerChoice)
-        
-def whoWon(playerChoice, computerChoice):
+    await whoWon(playerChoice, computerChoice)
+
+async def whoWon(playerChoice, computerChoice):
     if playerChoice == computerChoice:
-        tie(playerChoice, computerChoice)
+        await tie(playerChoice, computerChoice)
     
     if playerChoice == "rock" and computerChoice == "paper":
-        lose(playerChoice, computerChoice)
+        await lose(playerChoice, computerChoice)
     
     if playerChoice == "rock" and computerChoice == "scissors":
-        win(playerChoice, computerChoice)
+        await win(playerChoice, computerChoice)
     
     if playerChoice == "paper" and computerChoice == "rock":
-        win(playerChoice, computerChoice)
+        await win(playerChoice, computerChoice)
     
     if playerChoice == "paper" and computerChoice == "scissors":
-        lose(playerChoice, computerChoice)
+        await lose(playerChoice, computerChoice)
     
     if playerChoice == "scissors" and computerChoice == "rock":
-        lose(playerChoice, computerChoice)
+        await lose(playerChoice, computerChoice)
     
     if playerChoice == "scissors" and computerChoice == "paper":
-        win(playerChoice, computerChoice)
+        await win(playerChoice, computerChoice)
 
-def decisionScreen():
+def pressLandedOn(pressPos, xpos, ypos, width, height):
+    # the same bounds Graphik.drawButton uses for the cursor
+    return pressPos is not None and xpos + width > pressPos[0] > xpos and ypos + height > pressPos[1] > ypos
+
+async def decisionScreen():
+    global chosenMove
     running = True
+    buttonYPos = 300
+    buttonSize = 100
 
     while running:
+        chosenMove = None
+        # A click or tap whose press and release land in the same frame is gone from
+        # pygame.mouse.get_pressed() by the time Graphik.drawButton looks, which is how a
+        # browser tap (and a quick click in the browser) arrives; the press event is kept.
+        pressPos = None
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                pressPos = event.pos
 
         gameDisplay.fill(white)
         graphik.drawText("Rock, Paper, or Scissors?", displayWidth//2, displayHeight//4, 36, black)
         middleButtonXPos = displayWidth//2 - 50
-        graphik.drawButton(middleButtonXPos - 200, 300, 100, 100, black, white, 15, "Rock", playerChoseRock)
-        graphik.drawButton(middleButtonXPos, 300, 100, 100, black, white, 15, "Paper", playerChosePaper)
-        graphik.drawButton(middleButtonXPos + 200, 300, 100, 100, black, white, 15, "Scissors", playerChoseScissors)
+        buttons = [
+            (middleButtonXPos - 200, "Rock", playerChoseRock),
+            (middleButtonXPos, "Paper", playerChosePaper),
+            (middleButtonXPos + 200, "Scissors", playerChoseScissors),
+        ]
+        for buttonXPos, label, chooseThis in buttons:
+            graphik.drawButton(buttonXPos, buttonYPos, buttonSize, buttonSize, black, white, 15, label, chooseThis)
+            if pressLandedOn(pressPos, buttonXPos, buttonYPos, buttonSize, buttonSize):
+                chooseThis()
 
         graphik.drawText("Wins: " + str(wins), 50, 25, 15, black)
         graphik.drawText("Losses: " + str(losses), 50, 50, 15, black)
         graphik.drawText("Ties: " + str(ties), 50, 75, 15, black)
-        pygame.display.update()
-        clock.tick(framesPerSecond)
+        await endFrame()
+
+        if chosenMove is not None:
+            move = chosenMove
+            chosenMove = None
+            await playRound(move)
 
 
-def tie(p, c):
+async def tie(p, c):
     global ties
     ties += 1
     reportRound("tie")
@@ -115,13 +163,12 @@ def tie(p, c):
         graphik.drawText("It was a tie!", displayWidth//2, displayHeight//4, 36, black)
         graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
         graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
-        pygame.display.update()
-        clock.tick(framesPerSecond)
+        await endFrame()
 
         if pygame.time.get_ticks() - startTime >= resultScreenDuration:
             running = False
 
-def win(p, c):
+async def win(p, c):
     global wins
     wins += 1
     reportRound("win")
@@ -138,13 +185,12 @@ def win(p, c):
         graphik.drawText("You win!", displayWidth//2, displayHeight//4, 36, black)
         graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
         graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
-        pygame.display.update()
-        clock.tick(framesPerSecond)
+        await endFrame()
 
         if pygame.time.get_ticks() - startTime >= resultScreenDuration:
             running = False
-            
-def lose(p, c):
+
+async def lose(p, c):
     global losses
     losses += 1
     reportRound("lose")
@@ -161,22 +207,26 @@ def lose(p, c):
         graphik.drawText("You lost!", displayWidth//2, displayHeight//4, 36, black)
         graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
         graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
-        pygame.display.update()
-        clock.tick(framesPerSecond)
+        await endFrame()
 
         if pygame.time.get_ticks() - startTime >= resultScreenDuration:
             running = False
 
-def main(reportUsage=False):
+async def main(reportUsage=False):
     global gameDisplay, graphik, clock, usage
-    if reportUsage:
+    # the trace client sends from a background thread, which the browser build cannot start
+    if reportUsage and not runningInBrowser():
         usage = startUsageReporting()
+    if runningInBrowser():
+        # every page load would otherwise start from the same random state, so each
+        # visitor would face the same sequence of computer moves
+        random.seed(time.time_ns())
     pygame.init()
     gameDisplay = pygame.display.set_mode((displayWidth, displayHeight))
     graphik = Graphik(gameDisplay)
     pygame.display.set_caption("Rock Paper Scissors")
     clock = pygame.time.Clock()
-    decisionScreen()
+    await decisionScreen()
 
 if __name__ == "__main__":
-    main(reportUsage=True)
+    asyncio.run(main(reportUsage=True))

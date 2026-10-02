@@ -9,3 +9,6 @@ env/
 
 # written on first launch by src/usage_reporting.py; holds the usage-reporting opt-out
 settings.json
+
+# pygbag's browser build output (python -m pygbag --build src)
+src/build/

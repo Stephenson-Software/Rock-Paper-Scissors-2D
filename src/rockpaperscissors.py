@@ -6,6 +6,7 @@ import pygame
 import random
 from Graphik import *
 from usage_reporting import startUsageReporting
+import arcade_scores
 
 black = (0,0,0)
 white = (255,255,255)
@@ -26,6 +27,15 @@ clock = None
 wins = 0
 losses = 0
 ties = 0
+
+# the current run of consecutive wins (a loss or a tie ends it) and the longest this session
+streak = 0
+bestStreak = 0
+streakAchievement = 5
+
+# the arcade-social bridge (arcade_scores.ArcadeScores) in the browser build; None on the
+# desktop and for main() called directly, so only the browser build reports scores
+scores = None
 
 # the trace client once main() has started usage reporting; None until then, and for
 # main() called directly (as the tests do), so only a real launch reports
@@ -49,6 +59,25 @@ async def endFrame():
 def reportRound(result):
     if usage is not None:
         usage.report("round-played", tags={"result": result})
+
+def recordStreak(result):
+    # Keeps the win streak and, in the browser build, reports each new best of the session to the
+    # "best-streak" leaderboard and unlocks the "first-win" and "streak-5" achievements.
+    global streak, bestStreak
+    if result != "win":
+        streak = 0
+        return
+    streak += 1
+    newBest = streak > bestStreak
+    bestStreak = max(bestStreak, streak)
+    if scores is None:
+        return
+    if newBest:
+        scores.submit("best-streak", streak)
+    if wins == 1:
+        scores.unlock("first-win")
+    if streak == streakAchievement:
+        scores.unlock("streak-5")
 
 def getComputerChoice():
     randomInt = random.randint(1,3)
@@ -144,6 +173,7 @@ async def decisionScreen():
         graphik.drawText("Wins: " + str(wins), 50, 25, 15, black)
         graphik.drawText("Losses: " + str(losses), 50, 50, 15, black)
         graphik.drawText("Ties: " + str(ties), 50, 75, 15, black)
+        graphik.drawText("Streak: " + str(streak), 50, 100, 15, black)
         await endFrame()
 
         if chosenMove is not None:
@@ -156,6 +186,7 @@ async def tie(p, c):
     global ties
     ties += 1
     reportRound("tie")
+    recordStreak("tie")
     running = True
     startTime = pygame.time.get_ticks()
 
@@ -178,6 +209,7 @@ async def win(p, c):
     global wins
     wins += 1
     reportRound("win")
+    recordStreak("win")
     running = True
     startTime = pygame.time.get_ticks()
 
@@ -200,6 +232,7 @@ async def lose(p, c):
     global losses
     losses += 1
     reportRound("lose")
+    recordStreak("lose")
     running = True
     startTime = pygame.time.get_ticks()
 
@@ -219,7 +252,7 @@ async def lose(p, c):
             running = False
 
 async def main(reportUsage=False):
-    global gameDisplay, graphik, clock, usage
+    global gameDisplay, graphik, clock, usage, scores
     # the trace client sends from a background thread, which the browser build cannot start
     if reportUsage and not runningInBrowser():
         usage = startUsageReporting()
@@ -227,6 +260,8 @@ async def main(reportUsage=False):
         # every page load would otherwise start from the same random state, so each
         # visitor would face the same sequence of computer moves
         random.seed(time.time_ns())
+        # high scores go to arcade-social from the browser build only
+        scores = arcade_scores.start()
     pygame.init()
     gameDisplay = pygame.display.set_mode((displayWidth, displayHeight))
     graphik = Graphik(gameDisplay)

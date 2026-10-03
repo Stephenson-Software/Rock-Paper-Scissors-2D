@@ -47,9 +47,13 @@ The suite covers `getComputerChoice` and all nine `whoWon` outcome pairs, the Wi
 `.github/workflows/browser.yml` runs on the same events and builds the browser version with pygbag, checking that `src/build/web/index.html` was produced. On a manual run (`workflow_dispatch`), or on a push to `master` once the repository variable `ARCADE_ENABLED` is `true`, it deploys the build to [arcade](https://github.com/Stephenson-Software/arcade) with [arcade-deploy](https://github.com/Stephenson-Software/arcade-deploy), as version `<version.txt>+g<short commit>`; the upload token is the `ARCADE_TOKEN` secret.
 
 ## Usage reporting
-Usage reporting is on by default: the game sends its name (`Rock-Paper-Scissors-2D`), its version and the events `startup` (when the game is launched) and `round-played` (after each round, tagged with its `result`: `win`, `lose` or `tie`) to [trace](https://github.com/Stephenson-Software/trace) at `https://trace.danielstephenson.dev`. Nothing about you, your machine, your IP address or your choices is sent. The report is made from a background thread, never blocks the game, and is dropped silently if the service is unreachable.
+Usage reporting is on by default: the game sends its name (`Rock-Paper-Scissors-2D`), its version and the events `startup` (when the game is launched) and `round-played` (after each round, tagged with its `result`: `win`, `lose` or `tie`) to [trace](https://github.com/Stephenson-Software/trace) at `https://trace.danielstephenson.dev`. Every event also carries a random installation ID (the tag `install`) so installations can be counted rather than events. Nothing about you, your machine, your IP address or your choices is sent. The report is made from a background thread, never blocks the game, and is dropped silently if the service is unreachable.
 
-The first launch writes a `settings.json` at the repository root and prints a one-line notice. To turn reporting off, any one of these is enough:
+The first launch writes a `settings.json` at the repository root and prints a one-line notice.
+
+The installation ID is a random UUID kept in a file named `trace-install-id` in the user data directory: `~/.local/share/rock-paper-scissors-2d/` on Linux (or `$XDG_DATA_HOME/rock-paper-scissors-2d/`), `~/Library/Application Support/rock-paper-scissors-2d/` on macOS and `%APPDATA%\rock-paper-scissors-2d\` on Windows. It identifies no person, account or address; delete the file to get a new one. Setting the environment variable `TRACE_INSTALL_ID` sends that value instead and leaves the file alone. The file is only created while reporting is on, so every opt-out below also stops it. The browser build never reports, so it has no ID.
+
+To turn reporting off, any one of these is enough:
 
 - `"usage_reporting": {"enabled": false}` in `settings.json`:
 

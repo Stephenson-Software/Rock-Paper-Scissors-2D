@@ -1,4 +1,7 @@
 # Rock-Paper-Scissors
+
+[![Play in your browser](https://img.shields.io/badge/Play-in%20your%20browser-2ea44f)](https://danielstephenson.dev/play/rock-paper-scissors-2d)
+
 This application allows the user to play a simple graphical version of Rock Paper Scissors against the computer.
 
 ## Play in your browser

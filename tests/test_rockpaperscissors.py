@@ -65,6 +65,8 @@ class CounterResettingTestCase(unittest.TestCase):
         rockpaperscissors.wins = 0
         rockpaperscissors.losses = 0
         rockpaperscissors.ties = 0
+        rockpaperscissors.streak = 0
+        rockpaperscissors.bestStreak = 0
 
 class GetComputerChoiceTest(unittest.TestCase):
     def test_rollOfOneIsRock(self):
@@ -255,6 +257,11 @@ class DecisionScreenTest(CounterResettingTestCase):
         self.assertIn("Losses: 1", text)
         self.assertIn("Ties: 3", text)
 
+    def test_tallyShowsTheCurrentStreak(self):
+        rockpaperscissors.streak = 4
+        text = drawnText(self.runDecisionScreen())
+        self.assertIn("Streak: 4", text)
+
 class MainTest(unittest.TestCase):
     def setUp(self):
         # The dummy drivers keep main() from opening a real window or touching the audio device.
@@ -304,6 +311,24 @@ class MainTest(unittest.TestCase):
         startUsageReporting.assert_not_called()
         self.assertIsNone(rockpaperscissors.usage)
 
+    def test_browserLaunchStartsTheScoresBridge(self):
+        self.addCleanup(setattr, rockpaperscissors, "scores", None)
+        with patch("rockpaperscissors.decisionScreen", new_callable=AsyncMock), \
+                patch("rockpaperscissors.sys.platform", "emscripten"), \
+                patch("rockpaperscissors.arcade_scores.start") as start:
+            asyncio.run(rockpaperscissors.main(reportUsage=True))
+        start.assert_called_once_with()
+        self.assertIs(rockpaperscissors.scores, start.return_value)
+
+    def test_desktopLaunchStartsNoScoresBridge(self):
+        self.addCleanup(setattr, rockpaperscissors, "usage", None)
+        with patch("rockpaperscissors.decisionScreen", new_callable=AsyncMock), \
+                patch("rockpaperscissors.startUsageReporting"), \
+                patch("rockpaperscissors.arcade_scores.start") as start:
+            asyncio.run(rockpaperscissors.main(reportUsage=True))
+        start.assert_not_called()
+        self.assertIsNone(rockpaperscissors.scores)
+
 class BrowserSeedingTest(unittest.TestCase):
     def setUp(self):
         self.addCleanup(MainTest.resetDisplayGlobals, self)
@@ -352,6 +377,68 @@ class RoundReportingTest(CounterResettingTestCase):
         with patch("rockpaperscissors.usage", None):
             self.playRound(rockpaperscissors.win, "rock", "scissors")
         self.usage.report.assert_not_called()
+
+class StreakTest(CounterResettingTestCase):
+    def setUp(self):
+        super().setUp()
+        self.scores = Mock()
+        patcher = patch("rockpaperscissors.scores", self.scores)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def play(self, *results):
+        screens = {"win": (rockpaperscissors.win, "rock", "scissors"),
+                   "lose": (rockpaperscissors.lose, "rock", "paper"),
+                   "tie": (rockpaperscissors.tie, "rock", "rock")}
+        for result in results:
+            resultScreen, playerChoice, computerChoice = screens[result]
+            with ExitStack() as stack:
+                enterScreenPatches(stack, [])
+                asyncio.run(resultScreen(playerChoice, computerChoice))
+
+    def submitted(self):
+        return [c.args for c in self.scores.submit.call_args_list]
+
+    def unlocked(self):
+        return [c.args[0] for c in self.scores.unlock.call_args_list]
+
+    def test_consecutiveWinsBuildTheStreak(self):
+        self.play("win", "win", "win")
+        self.assertEqual((rockpaperscissors.streak, rockpaperscissors.bestStreak), (3, 3))
+
+    def test_aLossEndsTheStreakButKeepsTheBest(self):
+        self.play("win", "win", "lose")
+        self.assertEqual((rockpaperscissors.streak, rockpaperscissors.bestStreak), (0, 2))
+
+    def test_aTieEndsTheStreak(self):
+        self.play("win", "tie", "win")
+        self.assertEqual((rockpaperscissors.streak, rockpaperscissors.bestStreak), (1, 1))
+
+    def test_onlyANewBestOfTheSessionIsSubmitted(self):
+        self.play("win", "win", "lose", "win", "win", "win", "tie", "win")
+        self.assertEqual(self.submitted(), [("best-streak", 1), ("best-streak", 2), ("best-streak", 3)])
+
+    def test_lossesAndTiesSubmitNothing(self):
+        self.play("lose", "tie")
+        self.scores.submit.assert_not_called()
+        self.scores.unlock.assert_not_called()
+
+    def test_theFirstWinUnlocksFirstWinOnce(self):
+        self.play("lose", "win", "win", "lose", "win")
+        self.assertEqual(self.unlocked(), ["first-win"])
+
+    def test_fiveWinsInARowUnlockStreakFive(self):
+        self.play("win", "win", "win", "win")
+        self.assertNotIn("streak-5", self.unlocked())
+        self.play("win", "win")
+        self.assertEqual(self.unlocked(), ["first-win", "streak-5"])
+
+    def test_noBridgeMeansNothingIsReported(self):
+        with patch("rockpaperscissors.scores", None):
+            self.play("win", "win", "win", "win", "win")
+        self.assertEqual(rockpaperscissors.bestStreak, 5)
+        self.scores.submit.assert_not_called()
+        self.scores.unlock.assert_not_called()
 
 class ScoreCounterTest(CounterResettingTestCase):
     def runResultScreen(self, resultScreen, playerChoice, computerChoice):

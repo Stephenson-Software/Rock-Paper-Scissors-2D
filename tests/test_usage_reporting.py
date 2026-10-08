@@ -88,6 +88,12 @@ class TestUsageReportingSettings(unittest.TestCase):
         self.assertEqual(43, len(DEFAULT_KEY))
         self.assertEqual("https://trace.danielstephenson.dev", DEFAULT_ENDPOINT)
 
+    def test_reported_version_matches_version_txt(self):
+        # the browser build deploys as version.txt's version; usage reports must not lag behind it
+        versionFile = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "version.txt")
+        with open(versionFile, "r") as f:
+            self.assertEqual(f.read().strip(), VERSION)
+
     def test_settings_file_is_settings_json_at_the_repository_root(self):
         self.assertEqual(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "settings.json"), SETTINGS_FILE)
 

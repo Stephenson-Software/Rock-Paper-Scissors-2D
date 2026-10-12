@@ -182,11 +182,8 @@ async def decisionScreen():
             await playRound(move)
 
 
-async def tie(p, c):
-    global ties
-    ties += 1
-    reportRound("tie")
-    recordStreak("tie")
+async def resultScreen(heading, p, c):
+    # the screen shown after every round; tie, win and lose differ only in the heading
     running = True
     startTime = pygame.time.get_ticks()
 
@@ -197,59 +194,34 @@ async def tie(p, c):
                 quit()
 
         gameDisplay.fill(white)
-        graphik.drawText("It was a tie!", displayWidth//2, displayHeight//4, 36, black)
+        graphik.drawText(heading, displayWidth//2, displayHeight//4, 36, black)
         graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
         graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
         await endFrame()
 
         if pygame.time.get_ticks() - startTime >= resultScreenDuration:
             running = False
+
+async def tie(p, c):
+    global ties
+    ties += 1
+    reportRound("tie")
+    recordStreak("tie")
+    await resultScreen("It was a tie!", p, c)
 
 async def win(p, c):
     global wins
     wins += 1
     reportRound("win")
     recordStreak("win")
-    running = True
-    startTime = pygame.time.get_ticks()
-
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-
-        gameDisplay.fill(white)
-        graphik.drawText("You win!", displayWidth//2, displayHeight//4, 36, black)
-        graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
-        graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
-        await endFrame()
-
-        if pygame.time.get_ticks() - startTime >= resultScreenDuration:
-            running = False
+    await resultScreen("You win!", p, c)
 
 async def lose(p, c):
     global losses
     losses += 1
     reportRound("lose")
     recordStreak("lose")
-    running = True
-    startTime = pygame.time.get_ticks()
-
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-
-        gameDisplay.fill(white)
-        graphik.drawText("You lost!", displayWidth//2, displayHeight//4, 36, black)
-        graphik.drawText("Player Choice: " + p, displayWidth//2, displayHeight//2, 36, black)
-        graphik.drawText("Computer Choice: " + c, displayWidth//2, displayHeight - displayHeight//4, 36, black)
-        await endFrame()
-
-        if pygame.time.get_ticks() - startTime >= resultScreenDuration:
-            running = False
+    await resultScreen("You lost!", p, c)
 
 async def main(reportUsage=False):
     global gameDisplay, graphik, clock, usage, scores

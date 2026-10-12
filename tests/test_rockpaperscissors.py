@@ -520,6 +520,20 @@ class RenderLoopTest(CounterResettingTestCase):
             with self.assertRaises(SystemExit):
                 asyncio.run(rockpaperscissors.win("rock", "scissors"))
 
+    def test_quitIsHonouredOnEveryResultScreen(self):
+        quitEvent = Mock()
+        quitEvent.type = pygame.QUIT
+        screens = {"win": (rockpaperscissors.win, "rock", "scissors"),
+                   "lose": (rockpaperscissors.lose, "rock", "paper"),
+                   "tie": (rockpaperscissors.tie, "rock", "rock")}
+        for name, (resultScreen, playerChoice, computerChoice) in screens.items():
+            with self.subTest(screen=name), ExitStack() as stack:
+                enterScreenPatches(stack, [quitEvent])
+                pygameQuit = stack.enter_context(patch("pygame.quit"))
+                with self.assertRaises(SystemExit):
+                    asyncio.run(resultScreen(playerChoice, computerChoice))
+                pygameQuit.assert_called_once_with()
+
     def test_quitDuringTheDecisionScreenIsHonoured(self):
         quitEvent = Mock()
         quitEvent.type = pygame.QUIT

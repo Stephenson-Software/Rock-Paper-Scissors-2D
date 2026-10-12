@@ -511,15 +511,6 @@ class RenderLoopTest(CounterResettingTestCase):
             self.assertEqual(sleep.await_count, eventGet.call_count - 1)
             sleep.assert_awaited_with(0)
 
-    def test_quitDuringAResultScreenIsHonoured(self):
-        quitEvent = Mock()
-        quitEvent.type = pygame.QUIT
-        with ExitStack() as stack:
-            enterScreenPatches(stack, [quitEvent])
-            stack.enter_context(patch("pygame.quit"))
-            with self.assertRaises(SystemExit):
-                asyncio.run(rockpaperscissors.win("rock", "scissors"))
-
     def test_quitIsHonouredOnEveryResultScreen(self):
         quitEvent = Mock()
         quitEvent.type = pygame.QUIT

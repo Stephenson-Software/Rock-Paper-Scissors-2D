@@ -134,6 +134,12 @@ class WhoWonTest(unittest.TestCase):
     def test_scissorsTiesScissors(self):
         self.assertOutcome("scissors", "scissors", "tie")
 
+    def test_anUnknownChoicePlaysNothing(self):
+        asyncio.run(rockpaperscissors.whoWon("rock", None))
+        asyncio.run(rockpaperscissors.whoWon("lizard", "rock"))
+        for outcome in self.outcomes.values():
+            outcome.assert_not_called()
+
 class PlayerChoiceTest(unittest.TestCase):
     def setUp(self):
         self.addCleanup(setattr, rockpaperscissors, "chosenMove", None)

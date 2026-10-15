@@ -17,6 +17,9 @@ blue = (0,0,200)
 displayWidth = 900
 displayHeight = 600
 
+# each choice and the choice it beats
+beats = {"rock": "scissors", "paper": "rock", "scissors": "paper"}
+
 framesPerSecond = 60
 resultScreenDuration = 2000
 
@@ -109,24 +112,10 @@ async def playRound(playerChoice):
 async def whoWon(playerChoice, computerChoice):
     if playerChoice == computerChoice:
         await tie(playerChoice, computerChoice)
-    
-    if playerChoice == "rock" and computerChoice == "paper":
-        await lose(playerChoice, computerChoice)
-    
-    if playerChoice == "rock" and computerChoice == "scissors":
+    elif beats.get(playerChoice) == computerChoice:
         await win(playerChoice, computerChoice)
-    
-    if playerChoice == "paper" and computerChoice == "rock":
-        await win(playerChoice, computerChoice)
-    
-    if playerChoice == "paper" and computerChoice == "scissors":
+    elif beats.get(computerChoice) == playerChoice:
         await lose(playerChoice, computerChoice)
-    
-    if playerChoice == "scissors" and computerChoice == "rock":
-        await lose(playerChoice, computerChoice)
-    
-    if playerChoice == "scissors" and computerChoice == "paper":
-        await win(playerChoice, computerChoice)
 
 def ignoreHeldButton():
     # Graphik.drawButton calls its function on every frame the left button is held over

@@ -10,9 +10,6 @@ import arcade_scores
 
 black = (0,0,0)
 white = (255,255,255)
-red = (200,0,0)
-green = (0,200,0)
-blue = (0,0,200)
 
 displayWidth = 900
 displayHeight = 600

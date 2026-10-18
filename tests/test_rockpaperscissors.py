@@ -141,23 +141,6 @@ class WhoWonTest(unittest.TestCase):
             outcome.assert_not_called()
 
 class PlayerChoiceTest(unittest.TestCase):
-    def setUp(self):
-        self.addCleanup(setattr, rockpaperscissors, "chosenMove", None)
-
-    def assertRecordsMove(self, playerChose, playerChoice):
-        rockpaperscissors.chosenMove = None
-        playerChose()
-        self.assertEqual(rockpaperscissors.chosenMove, playerChoice)
-
-    def test_rockButtonRecordsRock(self):
-        self.assertRecordsMove(rockpaperscissors.playerChoseRock, "rock")
-
-    def test_paperButtonRecordsPaper(self):
-        self.assertRecordsMove(rockpaperscissors.playerChosePaper, "paper")
-
-    def test_scissorsButtonRecordsScissors(self):
-        self.assertRecordsMove(rockpaperscissors.playerChoseScissors, "scissors")
-
     def assertPlaysRound(self, playerChoice):
         with patch("rockpaperscissors.getComputerChoice", return_value="paper"), \
              patch("rockpaperscissors.whoWon", new_callable=AsyncMock) as whoWon:

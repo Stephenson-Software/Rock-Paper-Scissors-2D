@@ -41,11 +41,6 @@ scores = None
 # main() called directly (as the tests do), so only a real launch reports
 usage = None
 
-# the move a button press recorded during the current decision-screen frame; the screen
-# plays the round once the frame is drawn. Callbacks only record, because the browser
-# build (pygbag) needs every frame loop to yield, which a synchronous callback cannot do.
-chosenMove = None
-
 def runningInBrowser():
     # pygbag runs the game under CPython compiled to WebAssembly
     return sys.platform == "emscripten"
@@ -89,19 +84,6 @@ def getComputerChoice():
 
     return "scissors"
 
-def chooseMove(move):
-    global chosenMove
-    chosenMove = move
-
-def playerChoseRock():
-    chooseMove("rock")
-
-def playerChosePaper():
-    chooseMove("paper")
-
-def playerChoseScissors():
-    chooseMove("scissors")
-
 async def playRound(playerChoice):
     computerChoice = getComputerChoice()
     await whoWon(playerChoice, computerChoice)
@@ -125,13 +107,11 @@ def pressLandedOn(pressPos, xpos, ypos, width, height):
     return pressPos is not None and xpos + width > pressPos[0] > xpos and ypos + height > pressPos[1] > ypos
 
 async def decisionScreen():
-    global chosenMove
     running = True
     buttonYPos = 300
     buttonSize = 100
 
     while running:
-        chosenMove = None
         # A round is played only from a left-button press event, once per click or tap: a
         # press and release landing in the same frame (how a browser tap arrives) still
         # counts, and a button held down plays nothing further.
@@ -147,14 +127,16 @@ async def decisionScreen():
         graphik.drawText("Rock, Paper, or Scissors?", displayWidth//2, displayHeight//4, 36, black)
         middleButtonXPos = displayWidth//2 - 50
         buttons = [
-            (middleButtonXPos - 200, "Rock", playerChoseRock),
-            (middleButtonXPos, "Paper", playerChosePaper),
-            (middleButtonXPos + 200, "Scissors", playerChoseScissors),
+            (middleButtonXPos - 200, "Rock", "rock"),
+            (middleButtonXPos, "Paper", "paper"),
+            (middleButtonXPos + 200, "Scissors", "scissors"),
         ]
-        for buttonXPos, label, chooseThis in buttons:
+        # a press only records the move here; the round is played after the frame is drawn
+        chosenMove = None
+        for buttonXPos, label, move in buttons:
             graphik.drawButton(buttonXPos, buttonYPos, buttonSize, buttonSize, black, white, 15, label, ignoreHeldButton)
             if pressLandedOn(pressPos, buttonXPos, buttonYPos, buttonSize, buttonSize):
-                chooseThis()
+                chosenMove = move
 
         graphik.drawText("Wins: " + str(wins), 50, 25, 15, black)
         graphik.drawText("Losses: " + str(losses), 50, 50, 15, black)
@@ -163,9 +145,7 @@ async def decisionScreen():
         await endFrame()
 
         if chosenMove is not None:
-            move = chosenMove
-            chosenMove = None
-            await playRound(move)
+            await playRound(chosenMove)
 
 
 async def resultScreen(heading, p, c):

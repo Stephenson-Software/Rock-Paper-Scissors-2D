@@ -223,6 +223,12 @@ class DecisionScreenTest(CounterResettingTestCase):
         whoWon = self.runWithEvents([self.pressEvent((50, 350)), self.pressEvent((450, 250))])
         whoWon.assert_not_called()
 
+    def test_aPressInTheGapBetweenButtonsPlaysNothing(self):
+        # Rock ends where the 100-pixel gap before Paper begins
+        middle = rockpaperscissors.displayWidth // 2 - 50
+        whoWon = self.runWithEvents([self.pressEvent((middle - 50, 350))])
+        whoWon.assert_not_called()
+
     def test_aRightButtonPressPlaysNothing(self):
         middle = rockpaperscissors.displayWidth // 2 - 50
         whoWon = self.runWithEvents([self.pressEvent((middle - 150, 350), button=3)])
@@ -250,6 +256,36 @@ class DecisionScreenTest(CounterResettingTestCase):
         rockpaperscissors.streak = 4
         text = drawnText(self.runDecisionScreen())
         self.assertIn("Streak: 4", text)
+
+class PressLandedOnTest(unittest.TestCase):
+    # a 100x100 box at (200, 300), the size and row of the decision screen's buttons
+    box = (200, 300, 100, 100)
+
+    def test_noPressLandsNowhere(self):
+        self.assertFalse(rockpaperscissors.pressLandedOn(None, *self.box))
+
+    def test_aPressJustInsideEveryEdgeLands(self):
+        for pos in ((201, 350), (299, 350), (250, 301), (250, 399)):
+            with self.subTest(pos=pos):
+                self.assertTrue(rockpaperscissors.pressLandedOn(pos, *self.box))
+
+    def test_aPressOnAnEdgeDoesNotLand(self):
+        for pos in ((200, 350), (300, 350), (250, 300), (250, 400)):
+            with self.subTest(pos=pos):
+                self.assertFalse(rockpaperscissors.pressLandedOn(pos, *self.box))
+
+    def test_boundsMatchGraphikDrawButton(self):
+        # a press must play a round exactly where Graphik.drawButton would see the cursor on the button
+        graphik = rockpaperscissors.Graphik(Mock())
+        for x in range(195, 306):
+            for y in (295, 300, 301, 350, 399, 400, 405):
+                fired = Mock()
+                with patch.object(rockpaperscissors.Graphik, "drawRectangle"), \
+                        patch.object(rockpaperscissors.Graphik, "drawText"), \
+                        patch("pygame.mouse.get_pos", return_value=(x, y)), \
+                        patch("pygame.mouse.get_pressed", return_value=(True, False, False)):
+                    graphik.drawButton(*self.box, rockpaperscissors.black, rockpaperscissors.white, 15, "Rock", fired)
+                self.assertEqual(rockpaperscissors.pressLandedOn((x, y), *self.box), fired.called, (x, y))
 
 class MainTest(unittest.TestCase):
     def setUp(self):

@@ -311,6 +311,12 @@ class MainTest(unittest.TestCase):
         self.assertIsInstance(rockpaperscissors.clock, type(pygame.time.Clock()))
         decisionScreen.assert_awaited_once_with()
 
+    def test_windowIsNineHundredBySixHundred(self):
+        # the size the README documents
+        with patch("rockpaperscissors.decisionScreen", new_callable=AsyncMock):
+            asyncio.run(rockpaperscissors.main())
+        self.assertEqual(rockpaperscissors.gameDisplay.get_size(), (900, 600))
+
     def test_directCallDoesNotStartUsageReporting(self):
         with patch("rockpaperscissors.decisionScreen", new_callable=AsyncMock), \
                 patch("rockpaperscissors.startUsageReporting") as startUsageReporting:
@@ -517,6 +523,31 @@ class RenderLoopTest(CounterResettingTestCase):
             _, eventGet = enterScreenPatches(stack, [])
             asyncio.run(rockpaperscissors.tie("rock", "rock"))
             self.assertEqual(eventGet.call_count, expectedFrames)
+
+    def test_resultScreenIsShownForTwoSeconds(self):
+        # the README promises two seconds; at 16 ms a frame that is the 125th frame
+        with ExitStack() as stack:
+            _, eventGet = enterScreenPatches(stack, [])
+            asyncio.run(rockpaperscissors.win("rock", "scissors"))
+            self.assertEqual(eventGet.call_count, 2000 // millisecondsPerFrame)
+
+    def test_everyResultScreenFrameIsCappedAtSixtyFramesPerSecond(self):
+        with ExitStack() as stack:
+            _, eventGet = enterScreenPatches(stack, [])
+            asyncio.run(rockpaperscissors.lose("rock", "paper"))
+            tick = rockpaperscissors.clock.tick
+            self.assertEqual(tick.call_count, eventGet.call_count)
+            self.assertEqual({call.args for call in tick.call_args_list}, {(60,)})
+
+    def test_everyDecisionScreenFrameIsCappedAtSixtyFramesPerSecond(self):
+        # without the cap the decision screen redraws as fast as it can, pinning a CPU core
+        with ExitStack() as stack:
+            _, eventGet = enterScreenPatches(stack, [])
+            with self.assertRaises(LoopDidNotExit):
+                asyncio.run(rockpaperscissors.decisionScreen())
+            tick = rockpaperscissors.clock.tick
+            self.assertEqual(tick.call_count, eventGet.call_count - 1)
+            self.assertEqual({call.args for call in tick.call_args_list}, {(60,)})
 
     def test_everyResultScreenFrameYieldsToTheEventLoop(self):
         # the browser build (pygbag) freezes unless each frame awaits asyncio.sleep(0)

@@ -4,7 +4,7 @@
 # the file into the game's archive with this module, so it is loaded from the game's own origin.
 #
 # The desktop build never reports: start() returns None anywhere but pygbag. In the browser the
-# client itself sends nothing unless the page is served over HTTPS from a <game>.play.danielstephenson.dev
+# client itself sends no score or achievement unless the page is served over HTTPS from a <game>.play.danielstephenson.dev
 # address (this game's is rock-paper-scissors) and arcade-social does not report the player signed out,
 # and none of its calls can throw. Scores come from the player's
 # browser and can be forged, so the board is labelled "not verified".

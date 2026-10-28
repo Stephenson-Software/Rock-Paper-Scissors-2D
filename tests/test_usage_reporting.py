@@ -21,10 +21,12 @@ from usage_reporting import (  # noqa: E402
     FIRST_RUN_NOTICE,
     FIRST_RUN_NOTICE_OFF_BY_ENVIRONMENT,
     SETTINGS_FILE,
+    UNKNOWN_VERSION,
     VERSION,
     buildClient,
     installIdFile,
     loadSettings,
+    readVersion,
     startUsageReporting,
 )
 
@@ -93,6 +95,23 @@ class TestUsageReportingSettings(unittest.TestCase):
         versionFile = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "version.txt")
         with open(versionFile, "r") as f:
             self.assertEqual(f.read().strip(), VERSION)
+
+    def test_version_follows_whatever_version_txt_says(self):
+        # the release automation bumps only version.txt; the reported version must follow it
+        with tempfile.TemporaryDirectory() as directory:
+            versionFile = os.path.join(directory, "version.txt")
+            with open(versionFile, "w") as f:
+                f.write("2.3.4\n")
+            self.assertEqual("2.3.4", readVersion(versionFile))
+
+    def test_missing_or_empty_version_txt_reports_unknown(self):
+        # pygbag packs only src/, so the browser build imports this module without version.txt
+        with tempfile.TemporaryDirectory() as directory:
+            versionFile = os.path.join(directory, "version.txt")
+            self.assertEqual(UNKNOWN_VERSION, readVersion(versionFile))
+            with open(versionFile, "w") as f:
+                f.write("\n")
+            self.assertEqual(UNKNOWN_VERSION, readVersion(versionFile))
 
     def test_settings_file_is_settings_json_at_the_repository_root(self):
         self.assertEqual(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "settings.json"), SETTINGS_FILE)

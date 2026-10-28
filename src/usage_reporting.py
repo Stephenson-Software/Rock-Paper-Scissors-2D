@@ -30,10 +30,25 @@ DEFAULT_ENDPOINT = "https://trace.danielstephenson.dev"
 # The program key Rock-Paper-Scissors-2D ships with. Keys identify a program rather than
 # guard anything (trace's ADR 0001), so it is kept here in the open.
 DEFAULT_KEY = "xFiLeIXEsFq-fkmX5Sa8ia3E3h8p2xgRtY-raSSYqTE"
-VERSION = "0.1"
-
 _HERE = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.normpath(os.path.join(_HERE, "..", "settings.json"))
+VERSION_FILE = os.path.normpath(os.path.join(_HERE, "..", "version.txt"))
+UNKNOWN_VERSION = "unknown"
+
+
+def readVersion(versionFile=VERSION_FILE):
+    """The version in version.txt, which the release automation bumps and the browser build
+    deploys as, so a release never needs a second edit here. UNKNOWN_VERSION when the file is
+    missing, empty or unreadable (pygbag packs only src/, so the browser build has no
+    version.txt; it starts no usage reporting either). Never raises."""
+    try:
+        with open(versionFile, "r") as f:
+            return f.read().strip() or UNKNOWN_VERSION
+    except (OSError, ValueError):
+        return UNKNOWN_VERSION
+
+
+VERSION = readVersion()
 
 DETAILS_URL = "https://github.com/Stephenson-Software/trace#usage-reporting"
 

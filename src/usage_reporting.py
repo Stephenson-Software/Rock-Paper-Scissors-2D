@@ -30,6 +30,7 @@ DEFAULT_ENDPOINT = "https://trace.danielstephenson.dev"
 # The program key Rock-Paper-Scissors-2D ships with. Keys identify a program rather than
 # guard anything (trace's ADR 0001), so it is kept here in the open.
 DEFAULT_KEY = "xFiLeIXEsFq-fkmX5Sa8ia3E3h8p2xgRtY-raSSYqTE"
+
 _HERE = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.normpath(os.path.join(_HERE, "..", "settings.json"))
 VERSION_FILE = os.path.normpath(os.path.join(_HERE, "..", "version.txt"))

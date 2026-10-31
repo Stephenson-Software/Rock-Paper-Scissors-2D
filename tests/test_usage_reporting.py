@@ -176,6 +176,38 @@ class TestUsageReportingSettings(unittest.TestCase):
         with open(self.settingsFile, "r") as f:
             self.assertEqual("{not json", f.read(), "a broken settings file must not be overwritten")
 
+    def test_settings_file_that_is_not_a_json_object_disables_reporting(self):
+        with open(self.settingsFile, "w") as f:
+            f.write("[]")
+
+        section = loadSettings(self.settingsFile, self.log)
+
+        self.assertIsNone(section)
+        self.assertEqual(1, len(self.logged))
+        self.assertIn("not a JSON object", self.logged[0])
+        self.assertIn("usage reporting is off", self.logged[0])
+        with open(self.settingsFile, "r") as f:
+            self.assertEqual("[]", f.read(), "a settings file that is not an object must not be overwritten")
+
+    def test_unwritable_settings_file_still_reports_and_warns_the_notice_will_repeat(self):
+        unwritable = os.path.join(self.tempDir.name, "missing-directory", "settings.json")
+
+        section = loadSettings(unwritable, self.log)
+
+        self.assertEqual({"enabled": True, "endpoint": DEFAULT_ENDPOINT, "key": DEFAULT_KEY}, section)
+        self.assertEqual(2, len(self.logged))
+        self.assertEqual(FIRST_RUN_NOTICE, self.logged[0])
+        self.assertTrue(self.logged[1].startswith("Could not write " + unwritable))
+        self.assertIn("the notice above will be shown again next time", self.logged[1])
+        self.assertFalse(os.path.exists(unwritable))
+
+    def test_a_client_that_cannot_be_built_is_disabled_instead_of_raising(self):
+        with patch("usage_reporting.installIdFile", side_effect=RuntimeError("boom")):
+            client = buildClient({"enabled": True})
+
+        self.assertFalse(client.enabled)
+        self.assertEqual("config", client.disabled_reason)
+
     def test_installation_id_is_kept_under_the_user_data_dir_and_reused(self):
         with patch("usage_reporting.sys.platform", "linux"), \
                 patch.dict(os.environ, {"XDG_DATA_HOME": os.path.join(self.tempDir.name, "xdg")}):

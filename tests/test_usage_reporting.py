@@ -164,6 +164,31 @@ class TestUsageReportingSettings(unittest.TestCase):
         self.assertEqual([], self.logged)
         self.assertEqual({"usage_reporting": {"enabled": False}}, self.readSettingsFile())
 
+    def test_enabled_that_is_not_a_json_boolean_is_an_opt_out_and_is_not_rewritten(self):
+        # a truthy value such as the string "false" must not leave reporting on
+        for value in ("false", "off", "no", "0", "true", "", 0, 1, None, [], {}):
+            with self.subTest(value=value):
+                self.logged.clear()
+                with open(self.settingsFile, "w") as f:
+                    json.dump({"usage_reporting": {"enabled": value}}, f)
+
+                client = buildClient(loadSettings(self.settingsFile, self.log))
+
+                self.assertFalse(client.enabled)
+                self.assertEqual("config", client.disabled_reason)
+                self.assertFalse(os.path.exists(installIdFile()))
+                self.assertEqual([], self.logged)
+                self.assertEqual({"usage_reporting": {"enabled": value}}, self.readSettingsFile())
+
+    def test_enabled_true_or_missing_leaves_reporting_on(self):
+        for section in ({"enabled": True}, {}):
+            with self.subTest(section=section):
+                client = buildClient(section)
+                self.addCleanup(client.close)
+
+                self.assertTrue(client.enabled)
+                self.assertIsNone(client.disabled_reason)
+
     def test_unreadable_settings_file_disables_reporting_without_raising(self):
         with open(self.settingsFile, "w") as f:
             f.write("{not json")

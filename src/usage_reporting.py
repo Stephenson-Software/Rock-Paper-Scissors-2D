@@ -131,7 +131,8 @@ def buildClient(section):
 
     Always built through the client's constructor otherwise, which puts
     TRACE_USAGE_REPORTING / DO_NOT_TRACK ahead of ``enabled`` and records why it is off in
-    ``disabled_reason``. A missing endpoint or key falls back to the shipped default. Every
+    ``disabled_reason``. Only a missing ``enabled`` or exactly ``true`` leaves reporting on; any
+    other value turns it off. A missing endpoint or key falls back to the shipped default. Every
     event carries a random installation ID as ``install``: TRACE_INSTALL_ID when set, else the
     one kept in installIdFile(); the client resolves both only after its opt-out checks, so a
     disabled client never creates the file.
@@ -144,7 +145,9 @@ def buildClient(section):
             APPLICATION,
             VERSION,
             key=str(section.get("key") or DEFAULT_KEY),
-            enabled=bool(section.get("enabled", True)),
+            # "is True", not bool(): the string "false" is truthy, and an opt-out that is
+            # not understood must report nothing rather than report
+            enabled=section.get("enabled", True) is True,
             install_id=os.environ.get("TRACE_INSTALL_ID"),
             install_id_file=installIdFile(),
         )

@@ -267,6 +267,13 @@ class TestUsageReportingSettings(unittest.TestCase):
             with patch("usage_reporting.sys.platform", "win32"):
                 self.assertEqual(os.path.join("/appdata", "rock-paper-scissors-2d", "trace-install-id"), installIdFile())
 
+    def test_windows_without_appdata_falls_back_to_the_home_directory(self):
+        with patch.dict(os.environ, {"HOME": "/h"}):
+            os.environ.pop("APPDATA", None)
+            with patch("usage_reporting.sys.platform", "win32"):
+                self.assertEqual(os.path.join("/h", "AppData", "Roaming", "rock-paper-scissors-2d", "trace-install-id"),
+                                 installIdFile())
+
     def test_missing_endpoint_and_key_fall_back_to_the_shipped_defaults(self):
         client = buildClient({"enabled": True})
 
@@ -309,6 +316,15 @@ class TestStartupEvent(unittest.TestCase):
                          request["body"])
         with open(installIdFile(), "r") as f:
             self.assertEqual(client.install_id, f.readline().strip())
+
+    def test_the_client_is_closed_when_the_interpreter_exits(self):
+        # closing is what sends the events still queued when the game is quit
+        self.writeSettings(False)
+
+        with patch("usage_reporting.atexit") as atexit:
+            client = startUsageReporting(self.settingsFile, lambda message: None)
+
+        atexit.register.assert_called_once_with(client.close)
 
     def test_opted_out_startup_sends_nothing(self):
         self.writeSettings(False)

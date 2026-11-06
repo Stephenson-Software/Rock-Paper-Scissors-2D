@@ -76,6 +76,14 @@ class DrawButtonTest(GraphikTestCase):
         for pixel in label:
             self.assertTrue(box.collidepoint(pixel))
 
+    def test_centresTheLabelInTheBox(self):
+        self.drawButton(self.outside, False)
+        label = pixelsMatching(self.surface, red)
+        xPositions = [x for x, y in label]
+        yPositions = [y for x, y in label]
+        self.assertAlmostEqual((min(xPositions) + max(xPositions)) / 2, self.xpos + self.width / 2, delta=3)
+        self.assertAlmostEqual((min(yPositions) + max(yPositions)) / 2, self.ypos + self.height / 2, delta=3)
+
     def test_firesWhenTheCursorIsInsideAndTheLeftButtonIsPressed(self):
         function = self.drawButton(self.inside, True)
         function.assert_called_once_with()

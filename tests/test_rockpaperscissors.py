@@ -589,7 +589,7 @@ class RenderLoopTest(CounterResettingTestCase):
             self.assertEqual(sleep.await_count, eventGet.call_count - 1)
             sleep.assert_awaited_with(0)
 
-    def test_everyResultScreenFrameIsClearedThenShown(self):
+    def test_everyResultScreenFrameIsClearedAndShown(self):
         # without the fill each screen is drawn over the last one; without the update nothing appears
         with ExitStack() as stack:
             _, eventGet = enterScreenPatches(stack, [])
@@ -599,7 +599,7 @@ class RenderLoopTest(CounterResettingTestCase):
             self.assertEqual({call.args for call in fill.call_args_list}, {(rockpaperscissors.white,)})
             self.assertEqual(pygame.display.update.call_count, eventGet.call_count)
 
-    def test_everyDecisionScreenFrameIsClearedThenShown(self):
+    def test_everyDecisionScreenFrameIsClearedAndShown(self):
         with ExitStack() as stack:
             _, eventGet = enterScreenPatches(stack, [])
             with self.assertRaises(LoopDidNotExit):

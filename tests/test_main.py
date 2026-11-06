@@ -43,5 +43,11 @@ class DesktopEntryPointTest(unittest.TestCase):
         self.assertEqual(coroutine.cr_code.co_name, "main")
         self.assertIs(coroutine.cr_frame.f_locals["reportUsage"], True)
 
+    def test_theTallyAndTheStreakStartAtZero(self):
+        # a fresh copy of the module: the other test modules reset the imported one's counters
+        namespace = runpy.run_path(desktopEntryPoint)
+        for counter in ("wins", "losses", "ties", "streak", "bestStreak"):
+            self.assertEqual(namespace[counter], 0, counter)
+
 if __name__ == "__main__":
     unittest.main()

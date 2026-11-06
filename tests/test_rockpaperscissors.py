@@ -91,6 +91,14 @@ class GetComputerChoiceTest(unittest.TestCase):
             observed.add(choice)
         self.assertEqual(observed, set(validChoices))
 
+    def test_theThreeChoicesAreEquallyLikely(self):
+        # a wider roll would still return valid choices, but would favour scissors
+        self.addCleanup(random.setstate, random.getstate())
+        random.seed(1)
+        draws = [rockpaperscissors.getComputerChoice() for _ in range(3000)]
+        for choice in validChoices:
+            self.assertAlmostEqual(draws.count(choice), 1000, delta=100)
+
 class WhoWonTest(unittest.TestCase):
     def setUp(self):
         self.outcomes = {}
@@ -171,6 +179,12 @@ class DecisionScreenTest(CounterResettingTestCase):
         xPositions = [call.args[0] for call in firstFrame]
         self.assertEqual(labels, ["Rock", "Paper", "Scissors"])
         self.assertEqual(xPositions, sorted(xPositions))
+
+    def test_buttonsAreHundredPixelSquaresWithPaperInTheMiddle(self):
+        graphik = self.runDecisionScreen()
+        firstFrame = graphik.drawButton.call_args_list[:3]
+        self.assertEqual([call.args[:4] for call in firstFrame],
+                         [(200, 300, 100, 100), (400, 300, 100, 100), (600, 300, 100, 100)])
 
     def test_buttonsIgnoreAHeldMouseButton(self):
         graphik = self.runDecisionScreen()
@@ -458,10 +472,18 @@ class StreakTest(CounterResettingTestCase):
         self.play("lose", "win", "win", "lose", "win")
         self.assertEqual(self.unlocked(), ["first-win"])
 
+    def test_firstWinIsUnlockedByTheVeryFirstWin(self):
+        self.play("lose", "win")
+        self.assertEqual(self.unlocked(), ["first-win"])
+
     def test_fiveWinsInARowUnlockStreakFive(self):
         self.play("win", "win", "win", "win")
         self.assertNotIn("streak-5", self.unlocked())
-        self.play("win", "win")
+        self.play("win")
+        self.assertEqual(self.unlocked(), ["first-win", "streak-5"])
+
+    def test_aSixthWinDoesNotUnlockStreakFiveAgain(self):
+        self.play("win", "win", "win", "win", "win", "win")
         self.assertEqual(self.unlocked(), ["first-win", "streak-5"])
 
     def test_noBridgeMeansNothingIsReported(self):
@@ -566,6 +588,36 @@ class RenderLoopTest(CounterResettingTestCase):
                 asyncio.run(rockpaperscissors.decisionScreen())
             self.assertEqual(sleep.await_count, eventGet.call_count - 1)
             sleep.assert_awaited_with(0)
+
+    def test_everyResultScreenFrameIsClearedAndShown(self):
+        # without the fill each screen is drawn over the last one; without the update nothing appears
+        with ExitStack() as stack:
+            _, eventGet = enterScreenPatches(stack, [])
+            asyncio.run(rockpaperscissors.win("rock", "scissors"))
+            fill = rockpaperscissors.gameDisplay.fill
+            self.assertEqual(fill.call_count, eventGet.call_count)
+            self.assertEqual({call.args for call in fill.call_args_list}, {(rockpaperscissors.white,)})
+            self.assertEqual(pygame.display.update.call_count, eventGet.call_count)
+
+    def test_everyDecisionScreenFrameIsClearedAndShown(self):
+        with ExitStack() as stack:
+            _, eventGet = enterScreenPatches(stack, [])
+            with self.assertRaises(LoopDidNotExit):
+                asyncio.run(rockpaperscissors.decisionScreen())
+            fill = rockpaperscissors.gameDisplay.fill
+            self.assertEqual(fill.call_count, eventGet.call_count - 1)
+            self.assertEqual({call.args for call in fill.call_args_list}, {(rockpaperscissors.white,)})
+            self.assertEqual(pygame.display.update.call_count, eventGet.call_count - 1)
+
+    def test_otherEventsDuringAResultScreenDoNotEndTheGame(self):
+        # moving the mouse while a result is shown must not close the window
+        otherEvent = Mock()
+        otherEvent.type = pygame.MOUSEMOTION
+        with ExitStack() as stack:
+            enterScreenPatches(stack, [otherEvent])
+            pygameQuit = stack.enter_context(patch("pygame.quit"))
+            asyncio.run(rockpaperscissors.win("rock", "scissors"))
+            pygameQuit.assert_not_called()
 
     def test_quitIsHonouredOnEveryResultScreen(self):
         quitEvent = Mock()

@@ -114,6 +114,11 @@ def loadSettings(settingsFile=SETTINGS_FILE, log=print):
     section = settings.get(SETTINGS_SECTION)
     if isinstance(section, dict):
         return section
+    if SETTINGS_SECTION in settings:
+        # "usage_reporting": false (or "off", null, ...) is a setting, not a missing block:
+        # read it as ``enabled`` and leave the file alone rather than replace it with the
+        # default block, which would turn reporting back on.
+        return {"enabled": section}
 
     settings[SETTINGS_SECTION] = defaultSettings()
     log(firstRunNotice())

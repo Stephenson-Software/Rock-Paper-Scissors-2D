@@ -70,7 +70,7 @@ To turn reporting off, any one of these is enough:
 
 The environment variables win over `settings.json`. In `settings.json`, only `true` or a missing `enabled` entry leaves reporting on; any other value, such as the string `"false"`, turns it off, and so does `"usage_reporting": false` in place of the block. An existing `usage_reporting` entry is never rewritten, so an opt-out stays put. If `settings.json` exists but cannot be read as a JSON object, nothing is reported, a message says so, and the file is left untouched. The `endpoint` and `key` entries in the same block select where reports go and the key they are sent with. The client is `src/trace_client.py`, vendored from [trace-client-python](https://github.com/Stephenson-Software/trace-client-python); the settings handling is in `src/usage_reporting.py`. Only a launch of `src/rockpaperscissors.py` reports to the real service: `main()` called directly reports nothing, the tests that call `main(reportUsage=True)` either replace `startUsageReporting` with a mock or run as the browser build (which skips reporting), `tests/test_main.py` replaces `main` itself or `asyncio.run` with a mock, the reporting tests send only to a stub server on `127.0.0.1` (and `tests/test_usage_reporting.py` keeps its `settings.json` in a temporary directory), and the CI smoke launch sets `TRACE_USAGE_REPORTING=off`. The browser build never reports: the client sends from a background thread, which the browser cannot start, so `main()` skips reporting when running under pygbag.
 
-Details: https://github.com/Stephenson-Software/trace#usage-reporting
+Details: https://danielstephenson.dev/usage-reporting
 
 ## Dependencies
 - pygame

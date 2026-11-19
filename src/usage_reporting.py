@@ -12,7 +12,7 @@ turn it off; setting ``enabled`` to ``false`` there does. So do the
 which every trace client honours and which win over the settings file because
 the client checks them first. Every call returns immediately and never raises:
 the network happens on a daemon thread owned by the vendored client in
-``trace_client.py``. Details: https://github.com/Stephenson-Software/trace#usage-reporting
+``trace_client.py``. Details: https://danielstephenson.dev/usage-reporting
 """
 import atexit
 import json
@@ -51,7 +51,7 @@ def readVersion(versionFile=VERSION_FILE):
 
 VERSION = readVersion()
 
-DETAILS_URL = "https://github.com/Stephenson-Software/trace#usage-reporting"
+DETAILS_URL = "https://danielstephenson.dev/usage-reporting"
 
 FIRST_RUN_NOTICE = (
     "Usage reporting is on: Rock-Paper-Scissors-2D sends its name and version at startup and a round-played event with each round's result to "

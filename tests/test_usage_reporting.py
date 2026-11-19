@@ -133,7 +133,7 @@ class TestUsageReportingSettings(unittest.TestCase):
         self.assertIn('"enabled": false', FIRST_RUN_NOTICE)
         self.assertIn("TRACE_USAGE_REPORTING=off", FIRST_RUN_NOTICE)
         self.assertIn(DETAILS_URL, FIRST_RUN_NOTICE)
-        self.assertEqual("https://github.com/Stephenson-Software/trace#usage-reporting", DETAILS_URL)
+        self.assertEqual("https://danielstephenson.dev/usage-reporting", DETAILS_URL)
         self.assertNotIn("\n", FIRST_RUN_NOTICE)
 
     def test_first_run_under_an_environment_opt_out_says_reporting_is_off(self):
@@ -179,6 +179,20 @@ class TestUsageReportingSettings(unittest.TestCase):
                 self.assertFalse(os.path.exists(installIdFile()))
                 self.assertEqual([], self.logged)
                 self.assertEqual({"usage_reporting": {"enabled": value}}, self.readSettingsFile())
+
+    def test_a_usage_reporting_value_that_is_not_a_block_is_an_opt_out_and_not_rewritten(self):
+        # "usage_reporting": false used to be replaced by the default block, turning reporting on.
+        for value in (False, "off", "false", "true", None, 0):
+            with self.subTest(usage_reporting=value):
+                self.logged.clear()
+                with open(self.settingsFile, "w") as f:
+                    json.dump({"usage_reporting": value}, f)
+
+                client = buildClient(loadSettings(self.settingsFile, self.log))
+
+                self.assertFalse(client.enabled)
+                self.assertEqual([], self.logged)
+                self.assertEqual({"usage_reporting": value}, self.readSettingsFile())
 
     def test_enabled_true_or_missing_leaves_reporting_on(self):
         for section in ({"enabled": True}, {}):

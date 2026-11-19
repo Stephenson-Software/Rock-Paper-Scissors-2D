@@ -12,7 +12,7 @@ turn it off; setting ``enabled`` to ``false`` there does. So do the
 which every trace client honours and which win over the settings file because
 the client checks them first. Every call returns immediately and never raises:
 the network happens on a daemon thread owned by the vendored client in
-``trace_client.py``. Details: https://github.com/Stephenson-Software/trace#usage-reporting
+``trace_client.py``. Details: https://danielstephenson.dev/usage-reporting
 """
 import atexit
 import json
@@ -51,7 +51,7 @@ def readVersion(versionFile=VERSION_FILE):
 
 VERSION = readVersion()
 
-DETAILS_URL = "https://github.com/Stephenson-Software/trace#usage-reporting"
+DETAILS_URL = "https://danielstephenson.dev/usage-reporting"
 
 FIRST_RUN_NOTICE = (
     "Usage reporting is on: Rock-Paper-Scissors-2D sends its name and version at startup and a round-played event with each round's result to "
@@ -114,6 +114,11 @@ def loadSettings(settingsFile=SETTINGS_FILE, log=print):
     section = settings.get(SETTINGS_SECTION)
     if isinstance(section, dict):
         return section
+    if SETTINGS_SECTION in settings:
+        # "usage_reporting": false (or "off", null, ...) is a setting, not a missing block:
+        # read it as ``enabled`` and leave the file alone rather than replace it with the
+        # default block, which would turn reporting back on.
+        return {"enabled": section}
 
     settings[SETTINGS_SECTION] = defaultSettings()
     log(firstRunNotice())

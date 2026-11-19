@@ -19,7 +19,7 @@ import json
 import os
 import sys
 
-from trace_client import TraceClient, environment_opts_out
+from trace_client import TraceClient, allows_reporting, environment_opts_out
 
 # @author Daniel McCoy Stephenson
 # @since September 24th, 2026
@@ -93,6 +93,44 @@ def installIdFile():
     return os.path.join(base, APPLICATION.lower(), "trace-install-id")
 
 
+def _normalise(key):
+    """A settings key in lower case with everything but letters and digits dropped, so
+    ``usage_reporting``, ``usage-reporting``, ``usageReporting`` and ``UsageReporting`` all
+    read ``usagereporting``."""
+    return "".join(c for c in str(key).lower() if c.isascii() and c.isalnum())
+
+
+def hasNearMissOptOut(settings):
+    """Whether ``settings`` holds an attempt to turn usage reporting off that is not written
+    exactly as ``"usage_reporting": {"enabled": ...}``. Such a setting used to be ignored: the
+    default block, ``"enabled": true``, was written next to it and reporting stayed on. An
+    operator who wrote any of these did not ask for reporting, so each counts as off:
+
+    * a top-level key that spells "usage reporting" another way (``usage-reporting``,
+      ``usageReporting``, ``UsageReporting``, ...) holding a value instead of a block that is
+      not clearly on (the client's ``allows_reporting``);
+    * inside any such block, a key that spells "enabled" another way (``enable``,
+      ``Enabled``, ...) whose value is not clearly on, or one that spells "disabled"
+      (``disabled``, ``disable``, ...) whose value is on.
+    """
+    for key, value in settings.items():
+        if "usagereport" not in _normalise(key):
+            continue
+        if not isinstance(value, dict):
+            if not allows_reporting(value):
+                return True
+            continue
+        for child, childValue in value.items():
+            if key == SETTINGS_SECTION and child == "enabled":
+                continue  # the switch itself, read by buildClient
+            name = _normalise(child)
+            if "disabl" in name and allows_reporting(childValue):
+                return True
+            if "enabl" in name and not allows_reporting(childValue):
+                return True
+    return False
+
+
 def loadSettings(settingsFile=SETTINGS_FILE, log=print):
     """Read the usage_reporting block from the settings file, writing the default block
     (and printing the one-time notice) when the file does not have one yet.
@@ -112,16 +150,23 @@ def loadSettings(settingsFile=SETTINGS_FILE, log=print):
             return None
 
     section = settings.get(SETTINGS_SECTION)
+    # An opt-out written under another spelling (see hasNearMissOptOut) wins over the block.
+    nearMissOptOut = hasNearMissOptOut(settings)
     if isinstance(section, dict):
-        return section
+        return dict(section, enabled=False) if nearMissOptOut else section
     if SETTINGS_SECTION in settings:
         # "usage_reporting": false (or "off", null, ...) is a setting, not a missing block:
         # read it as ``enabled`` and leave the file alone rather than replace it with the
         # default block, which would turn reporting back on.
         return {"enabled": section}
 
-    settings[SETTINGS_SECTION] = defaultSettings()
-    log(firstRunNotice())
+    if nearMissOptOut:
+        # The block is written with the real switch off, next to the near-miss, so the file
+        # says off in the spelling this program reads; no "reporting is on" notice is shown.
+        settings[SETTINGS_SECTION] = dict(defaultSettings(), enabled=False)
+    else:
+        settings[SETTINGS_SECTION] = defaultSettings()
+        log(firstRunNotice())
     try:
         with open(settingsFile, "w") as f:
             json.dump(settings, f, indent=2)

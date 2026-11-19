@@ -203,6 +203,60 @@ class TestUsageReportingSettings(unittest.TestCase):
                 self.assertTrue(client.enabled)
                 self.assertIsNone(client.disabled_reason)
 
+    def test_an_opt_out_written_under_a_near_miss_name_is_an_opt_out(self):
+        # Each of these used to be ignored: the default block was written next to it with
+        # "enabled": true and reporting stayed on.
+        nearMisses = (
+            {"usage-reporting": {"enabled": False}},
+            {"usageReporting": {"enabled": "off"}},
+            {"UsageReporting": {"enabled": "false"}},
+            {"usage-reporting": False},
+            {"usageReporting": "no"},
+            {"usage_reporting": {"enable": False}},
+            {"usage_reporting": {"Enabled": False}},
+            {"usage_reporting": {"disabled": True}},
+            {"usage_reporting": {"enabled": True, "disable": "yes"}},
+        )
+        for nearMiss in nearMisses:
+            with self.subTest(settings=nearMiss):
+                with open(self.settingsFile, "w") as f:
+                    json.dump(nearMiss, f)
+                self.logged.clear()
+
+                client = buildClient(loadSettings(self.settingsFile, self.log))
+
+                self.assertFalse(client.enabled)
+                self.assertEqual("config", client.disabled_reason)
+                self.assertEqual([], self.logged)
+
+    def test_near_miss_names_that_say_on_are_not_an_opt_out(self):
+        onCases = (
+            {"usage-reporting": {"enabled": True}},
+            {"usageReporting": "on"},
+            {"usage_reporting": {"enabled": True, "enable": "yes"}},
+            {"usage_reporting": {"enabled": True, "disabled": False}},
+            {"usage_reporting": {"enabled": True}, "other": {"enabled": False}},
+        )
+        for onCase in onCases:
+            with self.subTest(settings=onCase):
+                with open(self.settingsFile, "w") as f:
+                    json.dump(onCase, f)
+
+                self.assertTrue(buildClient(loadSettings(self.settingsFile, self.log)).enabled)
+
+    def test_a_near_miss_opt_out_writes_the_real_switch_off(self):
+        with open(self.settingsFile, "w") as f:
+            json.dump({"usage-reporting": {"enabled": False}}, f)
+
+        loadSettings(self.settingsFile, self.log)
+
+        written = self.readSettingsFile()
+        self.assertEqual({"enabled": False}, written["usage-reporting"])
+        self.assertIs(False, written["usage_reporting"]["enabled"])
+        self.assertEqual([], self.logged)
+        # and the next launch, reading the real switch, stays off
+        self.assertFalse(buildClient(loadSettings(self.settingsFile, self.log)).enabled)
+
     def test_unreadable_settings_file_disables_reporting_without_raising(self):
         with open(self.settingsFile, "w") as f:
             f.write("{not json")

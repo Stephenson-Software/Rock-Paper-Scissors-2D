@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 
 import pygame
 
-from Graphik import Graphik
+from preponderous.graphik import Graphik
 
 black = (0,0,0)
 white = (255,255,255)
@@ -96,17 +96,25 @@ class DrawButtonTest(GraphikTestCase):
         function = self.drawButton(self.outside, True)
         function.assert_not_called()
 
-    def test_doesNotFireOnTheLeftEdge(self):
+    # graphik 0.3.0's clickable region is exactly the drawn box, so its first column
+    # and row count (the old vendored copy missed them) and the column/row just past
+    # the box doesn't.
+    def test_firesOnTheLeftEdge(self):
         function = self.drawButton((self.xpos, self.ypos + self.height // 2), True)
-        function.assert_not_called()
+        function.assert_called_once_with()
 
-    def test_doesNotFireOnTheTopEdge(self):
+    def test_firesOnTheTopEdge(self):
         function = self.drawButton((self.xpos + self.width // 2, self.ypos), True)
+        function.assert_called_once_with()
+
+    def test_doesNotFireJustPastTheRightEdge(self):
+        function = self.drawButton((self.xpos + self.width, self.ypos + self.height // 2), True)
         function.assert_not_called()
 
     def test_heldButtonFiresOnEveryDraw(self):
-        # Characterises the polled-state behaviour tracked by issue #3: a button that is
-        # still held on the next frame fires its callback again.
+        # Characterises the polled-state behaviour tracked by issue #3: without
+        # Graphik.beginFrame, a button that is still held on the next frame fires its
+        # callback again.
         firstFrame = self.drawButton(self.inside, True)
         secondFrame = self.drawButton(self.inside, True)
         firstFrame.assert_called_once_with()

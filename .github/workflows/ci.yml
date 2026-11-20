@@ -9,9 +9,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      # The Graphik submodule is deliberately left uninitialized: `from Graphik import *`
-      # resolves to the vendored src/Graphik.py, because Python puts the script's own
-      # directory on sys.path.
       - uses: actions/checkout@v5
 
       # Pinned rather than tracking the newest 3.x: pygame publishes no wheel for the
@@ -21,6 +18,8 @@ jobs:
         with:
           python-version: "3.13"
 
+      # requirements.txt pins pygame and the graphik release the game imports
+      # (`preponderous.graphik`)
       - name: Install dependencies
         run: python3 -m pip install -r requirements.txt
 

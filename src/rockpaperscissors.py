@@ -4,7 +4,7 @@ import time
 
 import pygame
 import random
-from Graphik import *
+from preponderous.graphik import Graphik
 from usage_reporting import startUsageReporting
 import arcade_scores
 
@@ -103,8 +103,9 @@ def ignoreHeldButton():
     pass
 
 def pressLandedOn(pressPos, xpos, ypos, width, height):
-    # the same bounds Graphik.drawButton uses for the cursor
-    return pressPos is not None and xpos + width > pressPos[0] > xpos and ypos + height > pressPos[1] > ypos
+    # the same bounds Graphik.drawButton uses for the cursor: exactly the drawn box,
+    # so the left and top edges count and the right and bottom ones (just past it) don't
+    return pressPos is not None and xpos <= pressPos[0] < xpos + width and ypos <= pressPos[1] < ypos + height
 
 async def decisionScreen():
     running = True

@@ -16,6 +16,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      # pygbag packs only what is under src/, so a pip-installed graphik would be
+      # missing in the browser. Install the exact line requirements.txt pins into
+      # src/ for this build only (it is never committed).
+      - name: Put graphik into src for the web build
+        run: |
+          GRAPHIK="$(grep -E '^graphik @ ' requirements.txt)"
+          python3 -m pip install --no-deps --target src "$GRAPHIK"
+          rm -rf src/*.dist-info
+
       # pygbag packs src/ (main.py is its entry point) into a page that loads CPython and
       # pygame-ce compiled to WebAssembly from pygame-web.github.io
       - name: Build with pygbag

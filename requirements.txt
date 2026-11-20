@@ -1,1 +1,4 @@
 pygame>=2.0.0
+# graphik draws the screens. Installed from its release tag's source archive (it
+# isn't on PyPI); the browser build installs the same line into src/ (browser.yml).
+graphik @ https://github.com/Stephenson-Software/graphik/archive/refs/tags/v0.3.0.zip

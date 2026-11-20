@@ -12,3 +12,6 @@ settings.json
 
 # pygbag's browser build output (python -m pygbag --build src)
 src/build/
+
+# graphik, installed into src/ only for the browser build (browser.yml)
+src/preponderous/

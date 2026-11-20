@@ -283,8 +283,15 @@ class PressLandedOnTest(unittest.TestCase):
             with self.subTest(pos=pos):
                 self.assertTrue(rockpaperscissors.pressLandedOn(pos, *self.box))
 
-    def test_aPressOnAnEdgeDoesNotLand(self):
-        for pos in ((200, 350), (300, 350), (250, 300), (250, 400)):
+    def test_aPressOnTheLeftOrTopEdgeLands(self):
+        # graphik 0.3.0's clickable region is exactly the drawn box, which includes
+        # its first column and row
+        for pos in ((200, 350), (250, 300)):
+            with self.subTest(pos=pos):
+                self.assertTrue(rockpaperscissors.pressLandedOn(pos, *self.box))
+
+    def test_aPressJustPastTheRightOrBottomEdgeDoesNotLand(self):
+        for pos in ((300, 350), (250, 400)):
             with self.subTest(pos=pos):
                 self.assertFalse(rockpaperscissors.pressLandedOn(pos, *self.box))
 

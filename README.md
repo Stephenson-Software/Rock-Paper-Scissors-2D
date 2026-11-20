@@ -22,7 +22,7 @@ In the browser build, a signed-in player's longest run of consecutive wins in a 
 The client is `src/arcade-scores.js`, vendored unchanged from arcade-social's `clients/js`; pygbag packs it into the game's archive, and `src/arcade_scores.py` loads it into the page and calls it through pygbag's `platform.window`. Its calls never throw, and the game carries on whatever happens to a score: one arcade-social refuses is dropped, and one lost to a network failure or a server error is tried once more 30 seconds later and then dropped.
 
 ## Prerequisites
-- Python 3.8 or newer (the game uses `asyncio.run` and `time.time_ns`, and the tests use `unittest.mock.AsyncMock`, which is new in 3.8; CI runs 3.13)
+- Python 3.9 or newer (the pinned graphik release is built with setuptools 77 or newer, which does not run on 3.8, so `pip install -r requirements.txt` fails there; the game also uses `asyncio.run` and `time.time_ns`, and the tests use `unittest.mock.AsyncMock`; CI runs 3.13)
 - A display (the game opens a 900x600 window)
 
 ## Installation
